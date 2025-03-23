@@ -1,6 +1,5 @@
-import scala.util.Random
-
 object AtariGo {
+
   type Board = List[List[Stone.Stone]]
 
   type Coord2D = (Int, Int) //(row, column)
@@ -10,18 +9,23 @@ object AtariGo {
     val Black, White, Empty = Value
   }
 
-  class MyRandom {
-    val random: Random = new Random
-    
-    def nextInt: (Int, MyRandom) = {
-      val exInt: Int = random.nextInt()
-      val exRand: MyRandom = new MyRandom
-      (exInt, exRand)
+  trait Random {
+    def nextInt: (Int, Random)
+  }
+
+  case class MyRandom(seed: Long) extends Random {
+    def nextInt: (Int, Random) = {
+      val newSeed = (seed * 0x5DEECE66DL + 0xBL) &
+        0xFFFFFFFFFFFFL
+      val nextRandom = MyRandom(newSeed)
+      val n = (newSeed >>> 16).toInt
+      (n, nextRandom)
     }
   }
 
   def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
-    val exCoord: Coord2D = (0, 0)
-    (exCoord, rand)
+    val (randInt, newRand) = rand.nextInt
+    val coord = lstOpenCoords(randInt%lstOpenCoords.length) 
+    (coord, rand)
   }
 }
