@@ -14,7 +14,7 @@ object AtariGo {
   }
 
   case class MyRandom(seed: Long) extends Random {
-    def nextInt: (Int, Random) = {
+    def nextInt: (Int, MyRandom) = {
       val newSeed = (seed * 0x5DEECE66DL + 0xBL) &
         0xFFFFFFFFFFFFL
       val nextRandom = MyRandom(newSeed)
@@ -25,7 +25,7 @@ object AtariGo {
 
   def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
     val (randInt, newRand) = rand.nextInt
-    val coord = lstOpenCoords(randInt%lstOpenCoords.length) 
-    (coord, rand)
+    val coord = lstOpenCoords(randInt%lstOpenCoords.length)
+    (coord, newRand)
   }
 }
