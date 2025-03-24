@@ -1,8 +1,10 @@
+import AtariGo.Stone.Stone
+
 import scala.util.Random
 
 object AtariGo {
-  type Board = List[List[Stone.Stone]]
 
+  type Board = List[List[Stone]]
   type Coord2D = (Int, Int) //(row, column)
 
   object Stone extends Enumeration {
@@ -10,18 +12,28 @@ object AtariGo {
     val Black, White, Empty = Value
   }
 
-  class MyRandom {
-    val random: Random = new Random
-    
-    def nextInt: (Int, MyRandom) = {
-      val exInt: Int = random.nextInt()
-      val exRand: MyRandom = new MyRandom
-      (exInt, exRand)
+  trait Random {
+    def nextInt(x: Int): (Int, Random)
+  }
+
+  case class MyRandom(seed: Long) extends Random {
+    def nextInt(x: Int): (Int, Random) = {
+      val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
+      val nextRandom = MyRandom(newSeed)
+      val n = ((newSeed >>> 16).toInt) % x
+      (if (n < 0) -n else n, nextRandom)
     }
   }
 
-  def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
-    val exCoord: Coord2D = (0, 0)
-    (exCoord, rand)
+  def randomMove(lstOpenCoords: List[Coord2D], rand: Random): (Coord2D, Random) = {
+    val (randInt, newRand) = rand.nextInt(lstOpenCoords.length)
+    (lstOpenCoords(randInt), newRand)
+  }
+
+  def main(args : Array[String]): Unit = {
+    val k = List((0,0), (0,1), (1,1))
+    val i = MyRandom(System.currentTimeMillis())
+    val (move, newRand) = randomMove(k, i)
+    println(s"Random move: $move")
   }
 }
