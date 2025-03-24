@@ -12,7 +12,7 @@ object AtariGo {
     val Black, White, Empty = Value
   }
 
-  trait Random {
+  trait Random { //interface Random
     def nextInt(x: Int): (Int, Random)
   }
 
