@@ -38,20 +38,27 @@ object AtariGo {
     )
   }
   
-//  //perguntar se podemos usar filternot???
-//  def play(board:Board, player: Stone, coord:Coord2D, lstOpenCoords:List[Coord2D]):(Option[Board], List[Coord2D]) = {
-//    if(!isElementUnused(coord, lstOpenCoords))
-//      (None, lstOpenCoords)
-//    else
-//      (
-//  }
+  //perguntar se podemos usar filternot???
+  def play(board:Board, player: Stone, coord:Coord2D, lstOpenCoords:List[Coord2D]):(Option[Board], List[Coord2D]) = {
+    if(!isElementUnused(coord, lstOpenCoords))
+      (None, lstOpenCoords)
+    else
+      val (row, column) = coord
+      var newBoard = List.fill(board.length, board.length)(Stone.Empty)
+      newBoard = board.updated(row, board(row).updated(column, player))
+      (Some(newBoard), lstOpenCoords.filterNot(_ == coord))
+  }
 
   def main(args : Array[String]): Unit = {
     val k = List((0,0), (0,1), (1,1))
     val c = (1,1)
     val i = MyRandom(System.currentTimeMillis())
     val (move, newRand) = randomMove(k, i)
+    val board = List(List(Stone.Black, Stone.Empty), List(Stone.White, Stone.Empty))
+    val lst = List((0,1), (1,1))
+    print(play(board, Stone.Black, (0,0), lst))
 //    println(s"Random move: $move")
 //    println(newRand)
+//    print(List.fill(9, 9)(Stone.Empty))
     }
 }
