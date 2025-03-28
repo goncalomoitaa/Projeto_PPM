@@ -48,7 +48,7 @@ object AtariGo {
         head :: filterBoard(tail, coord)
   }
 
-  //perguntar se podemos usar filternot???
+  //perguntar se podemos usar filternot??
   //  T2
   def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {
     if(!isElementUnused(coord, lstOpenCoords))
