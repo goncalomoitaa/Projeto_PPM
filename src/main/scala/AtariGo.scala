@@ -8,16 +8,16 @@ object AtariGo {
 
   object Stone extends Enumeration {
     type Stone = Value
-    //    type Captured = Boolean ????
+    type Captured = Boolean
     val Black, White, Empty = Value
   }
 
   trait Random { //interface Random
-    def nextInt(x: Int): (Int, Random)
+    def nextInt(x: Int): (Int, MyRandom)
   }
 
   case class MyRandom(seed: Long) extends Random {
-    def nextInt(x: Int): (Int, Random) = {
+    def nextInt(x: Int): (Int, MyRandom) = {
       val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
       val nextRandom = MyRandom(newSeed)
       val n = (newSeed >>> 16).toInt % x //x é o tamanho máximo permitido
@@ -25,7 +25,11 @@ object AtariGo {
     }
   }
 
-  def randomMove(lstOpenCoords: List[Coord2D], rand: Random): (Coord2D, Random) = {
+  def initializeBoard(size: Int): Board = {
+    (List.fill(size, size)(Stone.Empty))
+  }
+
+  def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
     val (randInt, newRand) = rand.nextInt(lstOpenCoords.length)
     (lstOpenCoords(randInt), newRand)
   }
@@ -50,14 +54,15 @@ object AtariGo {
 
   //perguntar se podemos usar filternot?
   //  T2
-  def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {
-    if(!isElementUnused(coord, lstOpenCoords))
-      (None, lstOpenCoords) // devolve None porque a jogada é invalida
-    else
-      val (row, column) = coord
-      var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
-      newBoard = board.updated(row, board(row).updated(column, player))
-      (Some(newBoard), filterBoard(lstOpenCoords, coord))
+  def play(board: Board, player: Stone, coord: Coord2D, lstOpenCoords: List[Coord2D]): (Option[Board], List[Coord2D]) = {
+    isElementUnused(coord, lstOpenCoords) match {
+      case false => (None, lstOpenCoords) // devolve None porque a jogada é invalida
+      case true =>
+        val (row, column) = coord
+        var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
+        newBoard = board.updated(row, board(row).updated(column, player)) // podemos usar a funcao updated??
+        (Some(newBoard), filterBoard(lstOpenCoords, coord))
+    }
   }
 
   //  T3
@@ -69,22 +74,60 @@ object AtariGo {
   {
     //        val (newCoord2D, MyRandomInstance) = randomMove(lstOpenCoords, r)
     val (newCoord2D, myRandomInstance) = f(lstOpenCoords, r)
-    val (Some(newBoardState), updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords)
-    (newBoardState, myRandomInstance, updatedLstOpenCoords)
-
+    val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords)
+    newBoardRes match {
+      case Some(newBoard) =>
+        (newBoard, myRandomInstance, updatedLstOpenCoords)
+      case None => (board, myRandomInstance, lstOpenCoords)
+    }
   }
 
+  def getEmptyCoordsList(board: Board): List[Coord2D] = board match {
+//    case Nil => Nil
+//    case head :: tail =>
+//      val emptyCoords = for {
+//        row <- 0 until board.length
+//        col <- 0 until head.length
+//        if board(row)(col) == Stone.Empty
+//      } yield (row, col)
+//      emptyCoords.toList ++ getEmptyCoordsList(tail)
+  }
+
+  //  T4
+  def visualizeBoard(board: Board): Unit = board match {
+    case Nil => ()
+    case head :: tail =>
+      visualizeLine(head)
+      println()
+      visualizeBoard(tail)
+  }
+
+  def visualizeLine(line: List[Stone]): Unit = line match {
+    case Nil => ()
+    case head :: tail =>
+      head match {
+        case Stone.Empty => print(" . ")
+        case Stone.Black => print(" B ")
+        case Stone.White => print(" W ")
+      }
+      visualizeLine(tail)
+  }
+
+
   def main(args : Array[String]) : Unit = {
-    val k = List((0,0), (0,1), (1,1))
-    val c = (1,1)
+    val board = List(List(Stone.Black, Stone.Empty), List(Stone.White, Stone.Empty), List(Stone.White, Stone.Empty), List(Stone.White, Stone.Empty))
+    val lst = List((0,1), (1,1), (2,1),(3,1))
+    val random = MyRandom(System.currentTimeMillis())
+    val f = randomMove(_: List[Coord2D], _ :MyRandom)
+    val (b, r, l) = playRandomly(board, random, Stone.Black, lst, f)
+    val k = List((0, 0), (0, 1), (1, 1))
     val i = MyRandom(System.currentTimeMillis())
     val (move, newRand) = randomMove(k, i)
-    val board = List(List(Stone.Black, Stone.Empty), List(Stone.White, Stone.Empty))
-    val lst = List((0,1), (1,1))
-    //    println(play(board, Stone.Black, (0,1), lst))
-        println(s"Random move: $move")
-    //    println(newRand)
-    //    print(List.fill(9, 9)(Stone.Empty))
-    //    println(lengthBoard(board))
+    val (newBoard, updatedLstOpenCoords) = play(board, Stone.Black, move, lst)
+    println("Board after move:")
+    newBoard match {
+      case Some(b) => visualizeBoard(b)
+      case None => println("Invalid move")
+    }
   }
 }
