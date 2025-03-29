@@ -56,14 +56,14 @@ object AtariGo {
 
   //perguntar se podemos usar filternot?
   //  T2
-  def play(board: Board, player: Stone, coord: Coord2D, lstOpenCoords: List[Coord2D]): (Option[Board], List[Coord2D]) = {
-    if isElementUnused( coord, lstOpenCoords ) then
-      val (row, column) = coord
-      var newBoard = List.fill( lengthBoard( board ), lengthBoard( board ) )( Stone.Empty )
-      newBoard = board.updated( row, board( row ).updated( column, player ) ) // podemos usar a funcao updated??
-          ( Some( newBoard ), filterBoard( lstOpenCoords, coord ) )
+  def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {
+    if(!isElementUnused(coord, lstOpenCoords))
+      (None, lstOpenCoords) // devolve None porque a jogada é invalida
     else
-      (None, lstOpenCoords)
+      val (row, column) = coord
+      var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
+      newBoard = board.updated(row, board(row).updated(column, player))
+      (Some(newBoard), filterBoard(lstOpenCoords, coord))
   }
 
   //  T3
