@@ -1,4 +1,6 @@
-import AtariGo.Stone.Stone
+import AtariGo.Stone.{ Empty, Stone }
+
+import scala.annotation.tailrec
 import scala.util.Random
 
 object AtariGo {
@@ -26,7 +28,7 @@ object AtariGo {
   }
 
   def initializeBoard(size: Int): Board = {
-    (List.fill(size, size)(Stone.Empty))
+    List.fill(size, size)(Stone.Empty)
   }
 
   def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
@@ -55,14 +57,13 @@ object AtariGo {
   //perguntar se podemos usar filternot?
   //  T2
   def play(board: Board, player: Stone, coord: Coord2D, lstOpenCoords: List[Coord2D]): (Option[Board], List[Coord2D]) = {
-    isElementUnused(coord, lstOpenCoords) match {
-      case false => (None, lstOpenCoords) // devolve None porque a jogada é invalida
-      case true =>
-        val (row, column) = coord
-        var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
-        newBoard = board.updated(row, board(row).updated(column, player)) // podemos usar a funcao updated??
-        (Some(newBoard), filterBoard(lstOpenCoords, coord))
-    }
+    if isElementUnused( coord, lstOpenCoords ) then
+      val (row, column) = coord
+      var newBoard = List.fill( lengthBoard( board ), lengthBoard( board ) )( Stone.Empty )
+      newBoard = board.updated( row, board( row ).updated( column, player ) ) // podemos usar a funcao updated??
+          ( Some( newBoard ), filterBoard( lstOpenCoords, coord ) )
+    else
+      (None, lstOpenCoords)
   }
 
   //  T3
@@ -82,26 +83,35 @@ object AtariGo {
     }
   }
 
-  def getEmptyCoordsList(board: Board): List[Coord2D] = board match {
-//    case Nil => Nil
-//    case head :: tail =>
-//      val emptyCoords = for {
-//        row <- 0 until board.length
-//        col <- 0 until head.length
-//        if board(row)(col) == Stone.Empty
-//      } yield (row, col)
-//      emptyCoords.toList ++ getEmptyCoordsList(tail)
+  def getEmptyCoordsList(board: Board): List[Coord2D] = {
+    
+    def gatherEmptyCoords(lst:List[Stone], currRow:Int, acc:Int) : List[Coord2D] = lst match{
+      case Nil ⇒ Nil
+      case head :: tail ⇒
+        if(head != Stone.Empty) gatherEmptyCoords(tail, currRow, acc + 1)
+        else (currRow, acc) :: gatherEmptyCoords(tail, currRow, acc + 1)
+    }
+    
+    def gatherLists(board:Board, acc:Int) : List[Coord2D] = board match {
+      case Nil => Nil
+      case head :: tail => gatherEmptyCoords(head, acc, 0) ++ gatherLists(tail, acc + 1)
+    }
+    
+    gatherLists(board, 0)
   }
 
   //  T4
+  @tailrec
   def visualizeBoard(board: Board): Unit = board match {
+
     case Nil => ()
     case head :: tail =>
       visualizeLine(head)
       println()
       visualizeBoard(tail)
   }
-
+  
+  @tailrec
   def visualizeLine(line: List[Stone]): Unit = line match {
     case Nil => ()
     case head :: tail =>
@@ -115,15 +125,21 @@ object AtariGo {
 
 
   def main(args : Array[String]) : Unit = {
-    val board = List(List(Stone.Black, Stone.Empty), List(Stone.White, Stone.Empty), List(Stone.White, Stone.Empty), List(Stone.White, Stone.Empty))
-    val lst = List((0,1), (1,1), (2,1),(3,1))
+    val board = List(
+        List(Stone.Black, Stone.Empty),
+        List(Stone.White, Stone.Empty),
+        List(Stone.White, Stone.Empty),
+        List(Stone.White, Stone.Empty))
+    print("Empty coords: ")
+    val lstEmptyCoords = getEmptyCoordsList( board )
+    println( lstEmptyCoords )
+    
     val random = MyRandom(System.currentTimeMillis())
     val f = randomMove(_: List[Coord2D], _ :MyRandom)
-    val (b, r, l) = playRandomly(board, random, Stone.Black, lst, f)
-    val k = List((0, 0), (0, 1), (1, 1))
+    val (b, r, newLstOpenCoords) = playRandomly(board, random, Stone.Black, lstEmptyCoords, f)
     val i = MyRandom(System.currentTimeMillis())
-    val (move, newRand) = randomMove(k, i)
-    val (newBoard, updatedLstOpenCoords) = play(board, Stone.Black, move, lst)
+    val (move, newRand) = randomMove(newLstOpenCoords, i)
+    val (newBoard, updatedLstOpenCoords) = play(board, Stone.Black, move, newLstOpenCoords)
     println("Board after move:")
     newBoard match {
       case Some(b) => visualizeBoard(b)
