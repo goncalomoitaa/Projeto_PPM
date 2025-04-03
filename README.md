@@ -1,7 +1,7 @@
 # Projeto de PPM
 
-ToDos:
-- T1
-- T2
-- T3
-- T4
+### Part 1
+- T1 \<done>
+- T2 \<done>
+- T3 \<done>
+- T4 \<done>
