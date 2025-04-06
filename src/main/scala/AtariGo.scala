@@ -1,7 +1,6 @@
 import AtariGo.Stone.{ Empty, Stone }
 
 import scala.annotation.tailrec
-import scala.util.Random
 
 object AtariGo {
 
@@ -10,7 +9,7 @@ object AtariGo {
 
   object Stone extends Enumeration {
     type Stone = Value
-    type Captured = Boolean
+//    type Captured = Boolean
     val Black, White, Empty = Value
   }
 
@@ -22,8 +21,8 @@ object AtariGo {
     def nextInt(x: Int): (Int, MyRandom) = {
       val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
       val nextRandom = MyRandom(newSeed)
-      val n = (newSeed >>> 16).toInt % x //x é o tamanho máximo permitido
-      (if (n < 0) -n else n, nextRandom) //caso o n seja negativo transforma em positivo
+      val n = (newSeed >>> 16).toInt % x
+      (if (n < 0) -n else n, nextRandom) // in case 'n' is negative, return it as positive
     }
   }
 
@@ -36,34 +35,32 @@ object AtariGo {
     (lstOpenCoords(randInt), newRand)
   }
 
-  def isElementUnused(coord : Coord2D, lstOpenCoords : List[Coord2D]) : Boolean = {
-    (lstOpenCoords foldRight false)(
-      (x, r) => if(x == coord) true else r )
+  def isCoordEmpty(coord : Coord2D, lstOpenCoords : List[Coord2D]) : Boolean = {
+    (lstOpenCoords foldRight false)( (x, r) => if(x == coord) true else r )
   }
 
-  def lengthBoard(board : Board): Int = {
+  def getBoardSize(board : Board): Int = {
     (board foldLeft 0)((r, x) => 1 + r)
   }
 
-  def filterBoard(lstOpenCoords : List[Coord2D], coord : Coord2D) : List[Coord2D] = lstOpenCoords match {
+  def filterOutCoord(lstOpenCoords : List[Coord2D], targetCoord : Coord2D) : List[Coord2D] = lstOpenCoords match {
     case Nil => Nil
     case head :: tail =>
-      if(head == coord)
-        filterBoard(tail, coord)
+      if(head == targetCoord)
+        filterOutCoord(tail, targetCoord)
       else
-        head :: filterBoard(tail, coord)
+        head :: filterOutCoord(tail, targetCoord)
   }
 
-  //perguntar se podemos usar filternot?
   //  T2
   def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {
-    if(!isElementUnused(coord, lstOpenCoords))
-      (None, lstOpenCoords) // devolve None porque a jogada é invalida
+    if(!isCoordEmpty(coord, lstOpenCoords))
+      (None, lstOpenCoords) // returns None since move was invalid
     else
       val (row, column) = coord
-      var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
-      newBoard = board.updated(row, board(row).updated(column, player))
-      (Some(newBoard), filterBoard(lstOpenCoords, coord))
+      var newBoard = initializeBoard(getBoardSize(board))
+      newBoard = board.updated(row, board(row).updated(column, player))   // Taken from (T2 - Lists, Recursion and Pattern Matching_v4.pdf)
+      (Some(newBoard), filterOutCoord(lstOpenCoords, coord))
   }
 
   //  T3
@@ -73,77 +70,97 @@ object AtariGo {
                    f:(List[Coord2D], MyRandom) => (Coord2D,MyRandom)
                   ) : (Board,MyRandom,List[Coord2D]) =
   {
-    //        val (newCoord2D, MyRandomInstance) = randomMove(lstOpenCoords, r)
     val (newCoord2D, myRandomInstance) = f(lstOpenCoords, r)
     val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords)
     newBoardRes match {
       case Some(newBoard) =>
-        (newBoard, myRandomInstance, updatedLstOpenCoords)
-      case None => (board, myRandomInstance, lstOpenCoords)
+        (newBoard, r, updatedLstOpenCoords)
+      case None => (board, r, lstOpenCoords)
     }
   }
 
-  def getEmptyCoordsList(board: Board): List[Coord2D] = {
+  def getBoardEmptyCoords(board: Board): List[Coord2D] = {
     
-    def gatherEmptyCoords(lst:List[Stone], currRow:Int, acc:Int) : List[Coord2D] = lst match{
+    def getRowEmptyCoords(lst:List[Stone], currRow:Int, acc:Int) : List[Coord2D] = lst match{
       case Nil ⇒ Nil
       case head :: tail ⇒
-        if(head != Stone.Empty) gatherEmptyCoords(tail, currRow, acc + 1)
-        else (currRow, acc) :: gatherEmptyCoords(tail, currRow, acc + 1)
+        if(head != Stone.Empty) getRowEmptyCoords(tail, currRow, acc + 1)
+        else (currRow, acc) :: getRowEmptyCoords(tail, currRow, acc + 1)
     }
     
-    def gatherLists(board:Board, acc:Int) : List[Coord2D] = board match {
+    def loopRowLists(board:Board, acc:Int) : List[Coord2D] = board match {
       case Nil => Nil
-      case head :: tail => gatherEmptyCoords(head, acc, 0) ++ gatherLists(tail, acc + 1)
+      case head :: tail => getRowEmptyCoords(head, acc, 0) ++ loopRowLists(tail, acc + 1)
     }
     
-    gatherLists(board, 0)
-  }
-
-  //  T4
-  @tailrec
-  def visualizeBoard(board: Board): Unit = board match {
-
-    case Nil => ()
-    case head :: tail =>
-      visualizeLine(head)
-      println()
-      visualizeBoard(tail)
+    loopRowLists(board, 0)
   }
   
+  //  T4
   @tailrec
-  def visualizeLine(line: List[Stone]): Unit = line match {
-    case Nil => ()
-    case head :: tail =>
-      head match {
-        case Stone.Empty => print(" . ")
-        case Stone.Black => print(" B ")
-        case Stone.White => print(" W ")
-      }
-      visualizeLine(tail)
+  def drawBoard(board: Board): Unit = {
+    
+    @tailrec
+    def drawLine(line: List[ Stone ]): Unit = line match {
+      case Nil => ()
+      case head :: tail =>
+        head match {
+          case Stone.Empty => print( " . " )
+          case Stone.Black => print( " B " )
+          case Stone.White => print( " W " )
+        }
+        drawLine( tail )
+    }
+    
+    board match {
+      case Nil => ()
+      case head :: tail =>
+        drawLine( head )
+        println()
+        drawBoard( tail )
+    }
   }
-
-
+  
   def main(args : Array[String]) : Unit = {
-    val board = List(
-        List(Stone.Black, Stone.Empty),
-        List(Stone.White, Stone.Empty),
-        List(Stone.White, Stone.Empty),
-        List(Stone.White, Stone.Empty))
+    val emptyBoardExample = initializeBoard(4)
+    
+    val exampleBoard = List(
+        List(Stone.Black, Stone.Empty, Stone.Empty, Stone.Empty, Stone.Empty),
+        List(Stone.White, Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty),
+        List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
+        List(Stone.White, Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty),
+        List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty)
+    )
+    
     print("Empty coords: ")
-    val lstEmptyCoords = getEmptyCoordsList( board )
+    val lstEmptyCoords = getBoardEmptyCoords( exampleBoard )
     println( lstEmptyCoords )
     
-    val random = MyRandom(System.currentTimeMillis())
-    val f = randomMove(_: List[Coord2D], _ :MyRandom)
-    val (b, r, newLstOpenCoords) = playRandomly(board, random, Stone.Black, lstEmptyCoords, f)
-    val i = MyRandom(System.currentTimeMillis())
-    val (move, newRand) = randomMove(newLstOpenCoords, i)
-    val (newBoard, updatedLstOpenCoords) = play(board, Stone.Black, move, newLstOpenCoords)
-    println("Board after move:")
-    newBoard match {
-      case Some(b) => visualizeBoard(b)
-      case None => println("Invalid move")
+    println("Board before move:")
+    drawBoard(exampleBoard)
+    
+    val randomInstance = MyRandom(System.currentTimeMillis())
+    
+    val funcRandMovePlay = randomMove(_: List[Coord2D], _ :MyRandom)  //  randomMove function as value
+    val (boardFirstMove, r, newLstOpenCoords1) = playRandomly(exampleBoard, randomInstance, Stone.Black, lstEmptyCoords, funcRandMovePlay)
+    
+    println("Board after first move (playRandomly):")
+    drawBoard(boardFirstMove)
+    
+    //val i = MyRandom(System.currentTimeMillis())  //  we do not want a new instance of MyRandom, we want to keep the same instance
+                                                    //  for the entirety of this exampleBoard instance
+    
+    val (randMove, newRand) = randomMove(newLstOpenCoords1, randomInstance)
+    val (boardSecondMove, newLstOpenCoords2) = play(boardFirstMove, Stone.Black, randMove, newLstOpenCoords1)
+    
+    println("Board after second move (randomMove + play):")
+    boardSecondMove match {
+      case Some(boardSecondMove) => drawBoard(boardSecondMove)
+      case None => println( "Invalid move" )
     }
+
+//    println("")
+//
+//    drawBoard(emptyBoardExample)
   }
 }
