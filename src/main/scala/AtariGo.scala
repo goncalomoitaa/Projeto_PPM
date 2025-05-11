@@ -1,7 +1,6 @@
 import AtariGo.Stone.{ Empty, Stone }
 
 import scala.annotation.tailrec
-import scala.util.Random
 
 object AtariGo {
 
@@ -10,7 +9,7 @@ object AtariGo {
 
   object Stone extends Enumeration {
     type Stone = Value
-    type Captured = Boolean
+    //    type Captured = Boolean
     val Black, White, Empty = Value
   }
 
@@ -18,52 +17,49 @@ object AtariGo {
     def nextInt(x: Int): (Int, MyRandom)
   }
 
-  case class MyRandom(seed: Long) extends Random {
-    def nextInt(x: Int): (Int, MyRandom) = {
+  case class MyRandom(seed: Long) extends Random { //o seed é uma espécie de semente que vai influenciar os números aleatórios que vão ser lançados
+    def nextInt(x: Int): (Int, MyRandom) = { // x é o max que o número aleatório pode chegar, e o Myrandom garante que o próximo número sorteado será diferente e que a sequência de números continue parecendo aleatória
       val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
-      val nextRandom = MyRandom(newSeed)
-      val n = (newSeed >>> 16).toInt % x //x é o tamanho máximo permitido
-      (if (n < 0) -n else n, nextRandom) //caso o n seja negativo transforma em positivo
+      val nextRandom = MyRandom(newSeed) //criamos o novo random com base na nova sement
+      val n = (newSeed >>> 16).toInt % x
+      (if (n < 0) -n else n, nextRandom) // in case 'n' is negative, return it as positive
     }
   }
 
-  def initializeBoard(size: Int): Board = {
+  def initializeBoard(size: Int): Board = {  //cria uma board que tem o mesmo nº de linhas como de colunas, toda vazia
     List.fill(size, size)(Stone.Empty)
   }
 
   def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = {
-    val (randInt, newRand) = rand.nextInt(lstOpenCoords.length)
-    (lstOpenCoords(randInt), newRand)
+    val (randInt, newRand) = rand.nextInt(lstOpenCoords.length) //gera uma coordenada aleatória e um rand novo
+    (lstOpenCoords(randInt), newRand) //devolve uma coordenada aleatória da lista de coordenadas vazias e o new rand
   }
 
-  def isElementUnused(coord : Coord2D, lstOpenCoords : List[Coord2D]) : Boolean = {
-    (lstOpenCoords foldRight false)(
-      (x, r) => if(x == coord) true else r )
+  def isCoordEmpty(coord : Coord2D, lstOpenCoords : List[Coord2D]) : Boolean = {
+    (lstOpenCoords foldRight false)( (x, r) => if(x == coord) true else r ) //procura usando fold se a coordenada esta na lista de coordenadas vazias
   }
 
-  def lengthBoard(board : Board): Int = {
-    (board foldLeft 0)((r, x) => 1 + r)
+  def getBoardSize(board : Board): Int = {
+    (board foldLeft 0)((r, x) => 1 + r) //usando fold pegariamos o tamanho da board
   }
 
-  def filterBoard(lstOpenCoords : List[Coord2D], coord : Coord2D) : List[Coord2D] = lstOpenCoords match {
-    case Nil => Nil
+  def filterOutCoord(lstOpenCoords : List[Coord2D], targetCoord : Coord2D) : List[Coord2D] = lstOpenCoords match { //recebe uma lista de coordenadas vazia e a coordenada a ser retirada
+    case Nil => Nil //e da-nos a lista sem essa coordenada
     case head :: tail =>
-      if(head == coord)
-        filterBoard(tail, coord)
+      if(head == targetCoord)
+        filterOutCoord(tail, targetCoord)
       else
-        head :: filterBoard(tail, coord)
+        head :: filterOutCoord(tail, targetCoord)
   }
 
-  //perguntar se podemos usar filternot?
   //  T2
-  def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {
-    if(!isElementUnused(coord, lstOpenCoords))
-      (None, lstOpenCoords) // devolve None porque a jogada é invalida
+  def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {//option
+    if(!isCoordEmpty(coord, lstOpenCoords))//se nao estiver na lista de coordenadas vazias é porque já foi preenchida
+      (None, lstOpenCoords) //não tem nada
     else
-      val (row, column) = coord
-      var newBoard = List.fill(lengthBoard(board), lengthBoard(board))(Stone.Empty)
-      newBoard = board.updated(row, board(row).updated(column, player))
-      (Some(newBoard), filterBoard(lstOpenCoords, coord))
+      val (row, column) = coord // se estiver pega a linha e coluna da coordenada
+      val newBoard = board.updated(row, board(row).updated(column, player))   // atualiza a board com o novo elemento
+      (Some(newBoard), filterOutCoord(lstOpenCoords, coord)) //tem algo
   }
 
   //  T3
@@ -73,77 +69,139 @@ object AtariGo {
                    f:(List[Coord2D], MyRandom) => (Coord2D,MyRandom)
                   ) : (Board,MyRandom,List[Coord2D]) =
   {
-    //        val (newCoord2D, MyRandomInstance) = randomMove(lstOpenCoords, r)
-    val (newCoord2D, myRandomInstance) = f(lstOpenCoords, r)
-    val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords)
+    val (newCoord2D, myRandomInstance) = f(lstOpenCoords, r) //vamos usar a funcao myrandom no main para obter a coordenada aleatoria e o new rand
+    val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords) // dá-nos a board e lista de vazios atualizada
     newBoardRes match {
       case Some(newBoard) =>
         (newBoard, myRandomInstance, updatedLstOpenCoords)
-      case None => (board, myRandomInstance, lstOpenCoords)
+      case None => (board, myRandomInstance, lstOpenCoords) //caso nao tenha nada devolve a board anterior
     }
   }
 
-  def getEmptyCoordsList(board: Board): List[Coord2D] = {
-    
-    def gatherEmptyCoords(lst:List[Stone], currRow:Int, acc:Int) : List[Coord2D] = lst match{
+  def getBoardEmptyCoords(board: Board): List[Coord2D] = { //dá-nos as coordenadas vazias de uma board
+
+    def getRowEmptyCoords(lst:List[Stone], currRow:Int, acc:Int) : List[Coord2D] = lst match{ //pega os zeros da linha
       case Nil ⇒ Nil
       case head :: tail ⇒
-        if(head != Stone.Empty) gatherEmptyCoords(tail, currRow, acc + 1)
-        else (currRow, acc) :: gatherEmptyCoords(tail, currRow, acc + 1)
+        if(head != Stone.Empty) getRowEmptyCoords(tail, currRow, acc + 1) //acc vai ser para sabermos a coluna
+        else (currRow, acc) :: getRowEmptyCoords(tail, currRow, acc + 1)
     }
-    
-    def gatherLists(board:Board, acc:Int) : List[Coord2D] = board match {
+
+    def loopRowLists(board:Board, acc:Int) : List[Coord2D] = board match {  //faz isso com todas as linhas da board
       case Nil => Nil
-      case head :: tail => gatherEmptyCoords(head, acc, 0) ++ gatherLists(tail, acc + 1)
+      case head :: tail => getRowEmptyCoords(head, acc, 0) ++ loopRowLists(tail, acc + 1)
     }
-    
-    gatherLists(board, 0)
+
+    loopRowLists(board, 0) //começa na linha 0
   }
 
   //  T4
-  @tailrec
-  def visualizeBoard(board: Board): Unit = board match {
+  @tailrec//garante que faça recursivamente e n faça overflow
+  def drawBoard(board: Board): Unit = {//desenha a board
 
-    case Nil => ()
-    case head :: tail =>
-      visualizeLine(head)
-      println()
-      visualizeBoard(tail)
-  }
-  
-  @tailrec
-  def visualizeLine(line: List[Stone]): Unit = line match {
-    case Nil => ()
-    case head :: tail =>
-      head match {
-        case Stone.Empty => print(" . ")
-        case Stone.Black => print(" B ")
-        case Stone.White => print(" W ")
-      }
-      visualizeLine(tail)
+    @tailrec
+    def drawLine(line: List[ Stone ]): Unit = line match { //desenha a linha
+      case Nil => () //caso seja a linha vazia retorna ()
+      case head :: tail =>
+        head match {
+          case Stone.Empty => print( " . " )
+          case Stone.Black => print( " B " )
+          case Stone.White => print( " W " )
+        }
+        drawLine( tail )  //desenha o resto da linha
+    }
+
+    board match {
+      case Nil => ()
+      case head :: tail =>
+        drawLine( head )
+        println()
+        drawBoard( tail ) //desenha todas as linhas recursivamente
+    }
   }
 
+  def neighbors(board: Board, coord : Coord2D): List[Coord2D] = {
+    List((coord._1 - 1, coord._2), (coord._1 + 1, coord._2), (coord._1, coord._2 - 1), (coord._1, coord._2 + 1)).filter((p, q) => p >= 0 && p < getBoardSize(board) && q >= 0 && q < getBoardSize(board))
+  }
+
+  def getGroup(board : Board, startCoord : Coord2D) : List[Coord2D] = {
+    @tailrec
+    def getGroupAux(listAux : List[Coord2D], visited : List[Coord2D]) : List[Coord2D] = listAux match {
+      case Nil => visited
+      case head :: tail =>
+        if(visited.contains(head))
+          getGroupAux(tail, visited)
+        else
+          val n = neighbors(board, head)
+          val x = n.filter((l, r) => board(l)(r).equals(board(head._1)(head._2)) && !visited.contains(head)) //????
+          getGroupAux(tail ++ x, head :: visited)
+    }
+    getGroupAux(List(startCoord), List())
+  }
+
+  def isSurrounded(board: Board, group : List[Coord2D]) : Boolean = {
+    def checkGroup(groupAux : List[Coord2D]) : Boolean = {
+      (groupAux foldRight true)((x, r) => checkCoord(x) && r)
+    }
+    def checkCoord(coord: Coord2D): Boolean = {
+      val list = neighbors(board, coord)
+      (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && r)
+    }
+    checkGroup(group)
+  }
+
+
+
+  //  // T5
+//  def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
+//
+//  }
 
   def main(args : Array[String]) : Unit = {
-    val board = List(
-        List(Stone.Black, Stone.Empty),
-        List(Stone.White, Stone.Empty),
-        List(Stone.White, Stone.Empty),
-        List(Stone.White, Stone.Empty))
-    print("Empty coords: ")
-    val lstEmptyCoords = getEmptyCoordsList( board )
-    println( lstEmptyCoords )
-    
-    val random = MyRandom(System.currentTimeMillis())
-    val f = randomMove(_: List[Coord2D], _ :MyRandom)
-    val (b, r, newLstOpenCoords) = playRandomly(board, random, Stone.Black, lstEmptyCoords, f)
-    val i = MyRandom(System.currentTimeMillis())
-    val (move, newRand) = randomMove(newLstOpenCoords, i)
-    val (newBoard, updatedLstOpenCoords) = play(board, Stone.Black, move, newLstOpenCoords)
-    println("Board after move:")
-    newBoard match {
-      case Some(b) => visualizeBoard(b)
-      case None => println("Invalid move")
-    }
+    val emptyBoardExample = initializeBoard(4)
+
+    val exampleBoard = List(
+      List(Stone.Black, Stone.Black, Stone.Black, Stone.White, Stone.Empty),
+      List(Stone.White, Stone.White, Stone.White, Stone.Empty, Stone.Empty),
+      List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
+      List(Stone.White, Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty),
+      List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty)
+    )
+//    print(getBoardEmptyCoords(exampleBoard))
+
+//    println(neighbors(exampleBoard, (0,1)))
+//    print(kk(exampleBoard, (0,1)))
+      print(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
+//    print(exampleBoard(1)(0))
+//    print("Empty coords: ")
+//    val lstEmptyCoords = getBoardEmptyCoords( exampleBoard )
+//    println( lstEmptyCoords )
+//
+//    println("Board before move:")
+//    drawBoard(exampleBoard)
+//
+//    val randomInstance = MyRandom(System.currentTimeMillis())
+//
+//    val funcRandMovePlay = randomMove(_: List[Coord2D], _ :MyRandom)  //  randomMove function as value
+//    val (boardFirstMove, r, newLstOpenCoords1) = playRandomly(exampleBoard, randomInstance, Stone.Black, lstEmptyCoords, funcRandMovePlay)
+//
+//    println("Board after first move (playRandomly):")
+//    drawBoard(boardFirstMove)
+//
+//    //val i = MyRandom(System.currentTimeMillis())  //  we do not want a new instance of MyRandom, we want to keep the same instance
+//    //  for the entirety of this exampleBoard instance
+//
+//    val (randMove, newRand) = randomMove(newLstOpenCoords1, randomInstance)
+//    val (boardSecondMove, newLstOpenCoords2) = play(boardFirstMove, Stone.Black, randMove, newLstOpenCoords1)
+//
+//    println("Board after second move (randomMove + play):")
+//    boardSecondMove match {
+//      case Some(boardSecondMove) => drawBoard(boardSecondMove)
+//      case None => println( "Invalid move" )
+//    }
+//
+//        println("")
+//
+//        drawBoard(emptyBoardExample)
   }
 }
