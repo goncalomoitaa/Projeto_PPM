@@ -171,14 +171,12 @@ object AtariGo {
     def removeFromRow(rowList: List[ Stone ], currRowId:Int, coordsToRemove: List[ Coord2D ], acc_currColId:Int) : (List[Stone], List[Coord2D]) = rowList match {
       case Nil => (List(), coordsToRemove)
       case currStone :: tail =>
-      {
         if (coordsToRemove.isEmpty) (currStone :: tail, coordsToRemove)
         else
           if(coordsToRemove.head == (currRowId, acc_currColId) )
             (Stone.Empty :: removeFromRow(tail, currRowId, coordsToRemove.tail, acc_currColId + 1)._1, coordsToRemove.tail)
           else
             (currStone :: removeFromRow(tail, currRowId, coordsToRemove, acc_currColId + 1)._1, coordsToRemove)
-      }
     }
     iterateRows(board, coords, 0)
   }
