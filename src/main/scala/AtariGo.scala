@@ -194,13 +194,11 @@ object AtariGo {
     def findCapturedStonesInRow(currBoard: Board, rowList:List[Stone], opponent:Stone, currRowId: Int, acc_currColId: Int = 0) : List[Coord2D] = rowList match{
       case Nil => Nil
       case head :: tail =>
-        {
           if(head == opponent)
             if( isSurrounded(currBoard, getGroup(currBoard, (currRowId, acc_currColId) ) ) )
               (currRowId, acc_currColId) :: findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
             else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
           else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
-        }
     }
     val capturedOpponentStonesList = findCapturedStones(board, board, opponentStone)
     val amountCaptured = capturedOpponentStonesList.length
@@ -209,7 +207,7 @@ object AtariGo {
 
 // T6
 //  Refazer
-  def checkWinConditions( capLimit:Int, whiteScore:Int, blackScore:Int) = Stone {
+  def checkWinConditions( capLimit:Int, whiteScore:Int, blackScore:Int): Stone = {
     // Retorna a cor da pedra que ganhou, Empty se ainda nao acabou o jogo
     if (whiteScore >= capLimit)
       Stone.White
