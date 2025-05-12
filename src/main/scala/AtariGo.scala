@@ -1,6 +1,7 @@
 import AtariGo.Stone.{ Empty, Stone }
 
 import scala.annotation.tailrec
+import scala.collection.immutable.::
 
 object AtariGo {
 
@@ -26,6 +27,9 @@ object AtariGo {
     }
   }
 
+  def getOppositeStone(player:Stone) : Stone =
+    if (player == Stone.Black) Stone.White else Stone.Black
+  
   def initializeBoard(size: Int): Board = {  //cria uma board que tem o mesmo nº de linhas como de colunas, toda vazia
     List.fill(size, size)(Stone.Empty)
   }
@@ -121,7 +125,13 @@ object AtariGo {
   }
 
   def neighbors(board: Board, coord : Coord2D): List[Coord2D] = {
-    List((coord._1 - 1, coord._2), (coord._1 + 1, coord._2), (coord._1, coord._2 - 1), (coord._1, coord._2 + 1)).filter((p, q) => p >= 0 && p < getBoardSize(board) && q >= 0 && q < getBoardSize(board))
+    val boardSize = getBoardSize(board)
+    List(
+      (coord._1 - 1, coord._2), // left
+      (coord._1 + 1, coord._2), // right
+      (coord._1, coord._2 - 1), // lower
+      (coord._1, coord._2 + 1)  // upper
+    ).filter((p, q) => p >= 0 && p < boardSize && q >= 0 && q < boardSize)
   }
 
   def getGroup(board : Board, startCoord : Coord2D) : List[Coord2D] = {
@@ -132,8 +142,8 @@ object AtariGo {
         if(visited.contains(head))
           getGroupAux(tail, visited)
         else
-          val n = neighbors(board, head)
-          val x = n.filter((l, r) => board(l)(r).equals(board(head._1)(head._2)) && !visited.contains(head)) //????
+          val currStoneNeighbors = neighbors(board, head)
+          val x = currStoneNeighbors.filter((l, r) => board(l)(r).equals(board(head._1)(head._2)) && !visited.contains(head)) //????
           getGroupAux(tail ++ x, head :: visited)
     }
     getGroupAux(List(startCoord), List())
@@ -149,13 +159,70 @@ object AtariGo {
     }
     checkGroup(group)
   }
+  
+  def removeStonesFromBoard(board:Board, coords:List[Coord2D]) : Board = {
+    def iterateRows(currentboard:Board, coordsToRemove:List[ Coord2D ], acc_currRow:Int): Board = currentboard match {
+      case Nil => Nil
+      case row :: remainingRows => 
+        val (newRow, remainingCoords) = removeFromRow (row, acc_currRow, coordsToRemove, 0)
+        newRow :: iterateRows(remainingRows, remainingCoords, acc_currRow + 1)
+    }
+    
+    def removeFromRow(rowList: List[ Stone ], currRowId:Int, coordsToRemove: List[ Coord2D ], acc_currColId:Int) : (List[Stone], List[Coord2D]) = rowList match {
+      case Nil => (List(), coordsToRemove)
+      case currStone :: tail =>
+      {
+        if (coordsToRemove.isEmpty) (currStone :: tail, coordsToRemove)
+        else
+          if(coordsToRemove.head == (currRowId, acc_currColId) )
+            (Stone.Empty :: removeFromRow(tail, currRowId, coordsToRemove.tail, acc_currColId + 1)._1, coordsToRemove.tail)
+          else
+            (currStone :: removeFromRow(tail, currRowId, coordsToRemove, acc_currColId + 1)._1, coordsToRemove)
+      }
+    }
+    iterateRows(board, coords, 0)
+  }
+  
+// T5
+  def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
+    val opponentStone = getOppositeStone(player)
 
+    def findCapturedStones(currBoard: Board, remainingBoard:Board, opponent: Stone, acc_currRowId:Int = 0) : List[Coord2D] = remainingBoard match {
+      case Nil => Nil
+      case currentRow :: remainingRows =>
+        findCapturedStonesInRow(currBoard, currentRow, opponent, acc_currRowId) ::: findCapturedStones(currBoard, remainingRows, opponent, acc_currRowId+1)
+    }
+    
+    def findCapturedStonesInRow(currBoard: Board, rowList:List[Stone], opponent:Stone, currRowId: Int, acc_currColId: Int = 0) : List[Coord2D] = rowList match{
+      case Nil => Nil
+      case head :: tail =>
+        {
+          if(head == opponent)
+            if( isSurrounded(currBoard, getGroup(currBoard, (currRowId, acc_currColId) ) ) )
+              (currRowId, acc_currColId) :: findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
+            else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
+          else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
+        }
+    }
+    val capturedOpponentStonesList = findCapturedStones(board, board, opponentStone)
+    val amountCaptured = capturedOpponentStonesList.length
+    (removeStonesFromBoard(board, capturedOpponentStonesList), amountCaptured)
+  }
 
+// T6
+//  Refazer
+  def checkWinConditions( capLimit:Int, whiteScore:Int, blackScore:Int) = Stone {
+    // Retorna a cor da pedra que ganhou, Empty se ainda nao acabou o jogo
+    if (whiteScore >= capLimit)
+      Stone.White
+    else if(blackScore >= capLimit)
+      Stone.Black
+    else
+      Stone.Empty
+  }
 
-  //  // T5
-//  def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
-//
-//  }
+// T7
+
 
   def main(args : Array[String]) : Unit = {
     val emptyBoardExample = initializeBoard(4)
@@ -167,41 +234,21 @@ object AtariGo {
       List(Stone.White, Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty),
       List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty)
     )
-//    print(getBoardEmptyCoords(exampleBoard))
-
-//    println(neighbors(exampleBoard, (0,1)))
-//    print(kk(exampleBoard, (0,1)))
-      print(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
-//    print(exampleBoard(1)(0))
-//    print("Empty coords: ")
-//    val lstEmptyCoords = getBoardEmptyCoords( exampleBoard )
-//    println( lstEmptyCoords )
-//
-//    println("Board before move:")
-//    drawBoard(exampleBoard)
-//
-//    val randomInstance = MyRandom(System.currentTimeMillis())
-//
-//    val funcRandMovePlay = randomMove(_: List[Coord2D], _ :MyRandom)  //  randomMove function as value
-//    val (boardFirstMove, r, newLstOpenCoords1) = playRandomly(exampleBoard, randomInstance, Stone.Black, lstEmptyCoords, funcRandMovePlay)
-//
-//    println("Board after first move (playRandomly):")
-//    drawBoard(boardFirstMove)
-//
-//    //val i = MyRandom(System.currentTimeMillis())  //  we do not want a new instance of MyRandom, we want to keep the same instance
-//    //  for the entirety of this exampleBoard instance
-//
-//    val (randMove, newRand) = randomMove(newLstOpenCoords1, randomInstance)
-//    val (boardSecondMove, newLstOpenCoords2) = play(boardFirstMove, Stone.Black, randMove, newLstOpenCoords1)
-//
-//    println("Board after second move (randomMove + play):")
-//    boardSecondMove match {
-//      case Some(boardSecondMove) => drawBoard(boardSecondMove)
-//      case None => println( "Invalid move" )
-//    }
-//
-//        println("")
-//
-//        drawBoard(emptyBoardExample)
+    
+    drawBoard(exampleBoard)
+    println("")
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,3))))
+    
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,0))))
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,1))))
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,2))))
+    
+    println("teste de remoçao")
+    println(getGroup(exampleBoard, (0,2)))
+    println("")
+    val (updatedBoardWithRemovedStones, howManyStonesCaptured) = captureGroupStones(exampleBoard, Stone.White)
+    drawBoard(updatedBoardWithRemovedStones)
+    println("Quantas capturadas? -> " + howManyStonesCaptured)
   }
 }
