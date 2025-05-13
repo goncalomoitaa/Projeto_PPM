@@ -1,9 +1,13 @@
-import AtariGo.Stone.{ Empty, Stone }
-
 import scala.annotation.tailrec
 import scala.collection.immutable.::
 
-object AtariGo {
+import MyRandom._
+import AtariGo.Stone.{ Empty, Stone }
+import TUI_Utils.{getUserInput, printGameOver, printGameState, printableFlipResult, showPrompt, tossCoin}
+
+case class GameState(numFlips: Int, numCorrect: Int)
+
+object AtariGo extends App{
 
   type Board = List[List[Stone]]
   type Coord2D = (Int, Int)       //(row, column)
@@ -12,19 +16,6 @@ object AtariGo {
     type Stone = Value
     //    type Captured = Boolean
     val Black, White, Empty = Value
-  }
-
-  trait Random { //interface Random
-    def nextInt(x: Int): (Int, MyRandom)
-  }
-
-  case class MyRandom(seed: Long) extends Random { //o seed é uma espécie de semente que vai influenciar os números aleatórios que vão ser lançados
-    def nextInt(x: Int): (Int, MyRandom) = { // x é o max que o número aleatório pode chegar, e o Myrandom garante que o próximo número sorteado será diferente e que a sequência de números continue parecendo aleatória
-      val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
-      val nextRandom = MyRandom(newSeed) //criamos o novo random com base na nova sement
-      val n = (newSeed >>> 16).toInt % x
-      (if (n < 0) -n else n, nextRandom) // in case 'n' is negative, return it as positive
-    }
   }
 
   def getOppositeStone(player:Stone) : Stone =
@@ -223,38 +214,40 @@ object AtariGo {
   def isPlayerTurnTimeUp(playerTurnTimestamp:Int, playerTurnMaxTime:Int) : Boolean = {
     if( System.currentTimeMillis() > playerTurnTimestamp + playerTurnMaxTime) true else false
   }
-
-  def main(args : Array[String]) : Unit = {
-    val emptyBoardExample = initializeBoard(4)
-
-    val exampleBoard = List(
-      List(Stone.Black, Stone.Black, Stone.Black, Stone.White, Stone.Black),
-      List(Stone.White, Stone.White, Stone.White, Stone.Empty, Stone.White),
-      List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
-      List(Stone.White, Stone.Empty, Stone.Black, Stone.Black, Stone.Empty),
-      List(Stone.Empty, Stone.Empty, Stone.Black, Stone.White, Stone.Black)
-    )
+  
+  val r = MyRandom(System.currentTimeMillis())
+  val s = GameState( 0, 0 )
+  
+  mainLoop( s, r )
+  
+  @tailrec
+  def mainLoop(gameState: GameState, random: MyRandom) : Unit = {
     
-    drawBoard(exampleBoard)
-    println("")
+    showPrompt()
+    val userInput = getUserInput()
     
-    println("(0,0), (0,1), (0,2)")
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,0))))
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,1))))
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,2))))
-    println("(0,4), (0,5)")
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,3))))
-    
-    println("")
-    println("teste de remoçao")
-    println("")
-    val (updatedBoardWithRemovedStones, howManyStonesCaptured) = captureGroupStones(exampleBoard, Stone.White)
-    drawBoard(updatedBoardWithRemovedStones)
-    println("Quantas capturadas? -> " + howManyStonesCaptured)
-    
-    val (updatedBoardWithRemovedStones1, howManyStonesCaptured1) = captureGroupStones(updatedBoardWithRemovedStones, Stone.Black)
-    drawBoard(updatedBoardWithRemovedStones1)
-    println("Quantas capturadas? -> " + howManyStonesCaptured1)
+    // handle the result
+    userInput match {
+      case "H" | "T" => {
+        val coinTossResult = tossCoin( random )
+        val newNumFlips = gameState.numFlips + 1
+        if( userInput == coinTossResult ) {
+          val newNumCorrect = gameState.numCorrect + 1
+          val newGameState = gameState.copy( numFlips = newNumFlips, numCorrect = newNumCorrect )
+          printGameState( printableFlipResult( coinTossResult ), newGameState )
+          mainLoop( newGameState, random )
+        } else {
+          val newGameState = gameState.copy( numFlips = newNumFlips )
+          printGameState( printableFlipResult( coinTossResult ), newGameState )
+          mainLoop( newGameState, random )
+        }
+      }
+      
+      case _ => {
+        printGameOver()
+        printGameState( gameState )
+        // return out of the recursion here
+      }
+    }
   }
 }
