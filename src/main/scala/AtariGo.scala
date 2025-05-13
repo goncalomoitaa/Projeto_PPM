@@ -201,6 +201,7 @@ object AtariGo {
           else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
     }
     val capturedOpponentStonesList = findCapturedStones(board, board, opponentStone)
+    println("Lista de capturadas: " + capturedOpponentStonesList)
     val amountCaptured = capturedOpponentStonesList.length
     (removeStonesFromBoard(board, capturedOpponentStonesList), amountCaptured)
   }
@@ -218,33 +219,42 @@ object AtariGo {
   }
 
 // T7
-
+//  Tempo de jogada do jogador acabou?
+  def isPlayerTurnTimeUp(playerTurnTimestamp:Int, playerTurnMaxTime:Int) : Boolean = {
+    if( System.currentTimeMillis() > playerTurnTimestamp + playerTurnMaxTime) true else false
+  }
 
   def main(args : Array[String]) : Unit = {
     val emptyBoardExample = initializeBoard(4)
 
     val exampleBoard = List(
-      List(Stone.Black, Stone.Black, Stone.Black, Stone.White, Stone.Empty),
-      List(Stone.White, Stone.White, Stone.White, Stone.Empty, Stone.Empty),
+      List(Stone.Black, Stone.Black, Stone.Black, Stone.White, Stone.Black),
+      List(Stone.White, Stone.White, Stone.White, Stone.Empty, Stone.White),
       List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
-      List(Stone.White, Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty),
-      List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty)
+      List(Stone.White, Stone.Empty, Stone.Black, Stone.Black, Stone.Empty),
+      List(Stone.Empty, Stone.Empty, Stone.Black, Stone.White, Stone.Black)
     )
     
     drawBoard(exampleBoard)
     println("")
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
-    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,3))))
     
+    println("(0,0), (0,1), (0,2)")
     println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,0))))
     println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,1))))
     println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,2))))
+    println("(0,4), (0,5)")
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,4))))
+    println(isSurrounded(exampleBoard, getGroup(exampleBoard, (0,3))))
     
+    println("")
     println("teste de remoçao")
-    println(getGroup(exampleBoard, (0,2)))
     println("")
     val (updatedBoardWithRemovedStones, howManyStonesCaptured) = captureGroupStones(exampleBoard, Stone.White)
     drawBoard(updatedBoardWithRemovedStones)
     println("Quantas capturadas? -> " + howManyStonesCaptured)
+    
+    val (updatedBoardWithRemovedStones1, howManyStonesCaptured1) = captureGroupStones(updatedBoardWithRemovedStones, Stone.Black)
+    drawBoard(updatedBoardWithRemovedStones1)
+    println("Quantas capturadas? -> " + howManyStonesCaptured1)
   }
 }
