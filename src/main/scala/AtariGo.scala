@@ -1,4 +1,4 @@
-import AtariGo.Stone.{ Empty, Stone }
+import AtariGo.Stone.Stone
 
 import scala.annotation.tailrec
 import scala.collection.immutable.::
