@@ -159,6 +159,12 @@ object AtariGo {
     }
     checkGroup(group)
   }
+
+  def removeCapturedFromBoard(board: Board, group: List[Coord2D]): Board = {
+    group.foldLeft(board) { case (b, Coord2D(row, col)) =>
+      b.updated(row, b(row).updated(col, Stone.Empty))
+    }
+  }
   
   def removeStonesFromBoard(board:Board, coords:List[Coord2D]) : Board = {
     def iterateRows(currentboard:Board, coordsToRemove:List[ Coord2D ], acc_currRow:Int): Board = currentboard match {
@@ -208,16 +214,13 @@ object AtariGo {
 
 // T6
 //  Refazer
-  def checkWinConditions( capLimit:Int, whiteScore:Int, blackScore:Int): Stone = {
-    // Retorna a cor da pedra que ganhou, Empty se ainda nao acabou o jogo
-    if (whiteScore >= capLimit)
-      Stone.White
-    else if(blackScore >= capLimit)
+  def play(board: Board, currPlayer: Stone, move: Coord2D, lstOpenCoords: List[Coord2D], playerTurnTimestamp:Int, playerTurnMaxTime: Int, scores:(Int, Int)) : Stone = isPlayerTurnTimeUp(playerTurnTimestamp, playerTurnMaxTime) match{
+    case true => play(board, getOppositeStone(currPlayer), (-1,-1), lstOpenCoords, 0, playerTurnMaxTime, scores)
+    case false => {
+      // stuff
       Stone.Black
-    else
-      Stone.Empty
+    }
   }
-
 // T7
 //  Tempo de jogada do jogador acabou?
   def isPlayerTurnTimeUp(playerTurnTimestamp:Int, playerTurnMaxTime:Int) : Boolean = {
