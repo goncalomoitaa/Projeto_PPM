@@ -1,13 +1,10 @@
-import AtariGo.Stone.{ Empty, Stone }
-
 import scala.annotation.tailrec
 import scala.collection.immutable.::
+import MyRandom.*
+import AtariGo.Stone.{Empty, Stone}
+import TUI_Utils.*
 
-import MyRandom._
-import AtariGo.Stone.{ Empty, Stone }
-import TUI_Utils.{getUserInput, printGameOver, printGameState, printableFlipResult, showPrompt, tossCoin}
-
-case class GameState(numFlips: Int, numCorrect: Int)
+import scala.io.StdIn.readLine // {getUserInput, printGameOver, printGameState, printableFlipResult, showMenuPrompt, tossCoin}
 
 object AtariGo extends App{
 
@@ -207,13 +204,20 @@ object AtariGo extends App{
 
 // T6
 //  Refazer
-  def play(board: Board, currPlayer: Stone, move: Coord2D, lstOpenCoords: List[Coord2D], playerTurnTimestamp:Int, playerTurnMaxTime: Int, scores:(Int, Int)) : Stone = isPlayerTurnTimeUp(playerTurnTimestamp, playerTurnMaxTime) match{
-    case true => play(board, getOppositeStone(currPlayer), (-1,-1), lstOpenCoords, 0, playerTurnMaxTime, scores)
-    case false => {
-      // stuff
-      Stone.Black
-    }
+//  def play(board: Board, currPlayer: Stone, move: Coord2D, lstOpenCoords: List[Coord2D], playerTurnTimestamp:Int, playerTurnMaxTime: Int, scores:(Int, Int)) : Stone = isPlayerTurnTimeUp(playerTurnTimestamp, playerTurnMaxTime) match{
+//    case true => play(board, getOppositeStone(currPlayer), (-1,-1), lstOpenCoords, 0, playerTurnMaxTime, scores)
+//    case false => {
+//      // stuff
+//      Stone.Black
+//    }
+//  }
+  def checkWinConditions(capLimit: Int, playerScore: Int, opponentScore: Int) : Int = {
+    // Retorna a cor da pedra que ganhou, None se ainda nao acabou o jogo
+    if (playerScore >= capLimit) 1
+    else if (opponentScore >= capLimit) -1
+    else 0
   }
+  
 // T7
 //  Tempo de jogada do jogador acabou?
   def isPlayerTurnTimeUp(playerTurnTimestamp:Int, playerTurnMaxTime:Int) : Boolean = {
@@ -221,37 +225,33 @@ object AtariGo extends App{
   }
   
   val r = MyRandom(System.currentTimeMillis())
-  val s = GameState( 0, 0 )
+  val currState = GameState( State.MENU)
   
-  mainLoop( s, r )
+  mainLoop( currState, r )
   
   @tailrec
   def mainLoop(gameState: GameState, random: MyRandom) : Unit = {
     
-    showPrompt()
-    val userInput = getUserInput()
-    
-    // handle the result
-    userInput match {
-      case "H" | "T" => {
-        val coinTossResult = tossCoin( random )
-        val newNumFlips = gameState.numFlips + 1
-        if( userInput == coinTossResult ) {
-          val newNumCorrect = gameState.numCorrect + 1
-          val newGameState = gameState.copy( numFlips = newNumFlips, numCorrect = newNumCorrect )
-          printGameState( printableFlipResult( coinTossResult ), newGameState )
-          mainLoop( newGameState, random )
-        } else {
-          val newGameState = gameState.copy( numFlips = newNumFlips )
-          printGameState( printableFlipResult( coinTossResult ), newGameState )
-          mainLoop( newGameState, random )
-        }
+    if (gameState.state != State.IN_GAME){
+        showMenuPrompt(gameState.state)
+        val userInput = getUserInput()
+        val newState = handleMenuInput( gameState, userInput )
+        mainLoop(newState, r)
+    }
+    else if(gameState.state == State.IN_GAME)
+    {
+      val currGameState = checkWinConditions(gameState.maxCap, gameState.playerCap, gameState.opponentCap)
+      if ( currGameState == 0 )  //  game in progress
+      {
+          println("main game loop, currently ingame.")
+          printGameState(gameState)
+          print("Waiting for input: ")
+          getUserInput()
+          mainLoop(gameState, r)
       }
-      
-      case _ => {
-        printGameOver()
-        printGameState( gameState )
-        // return out of the recursion here
+      else
+      {
+          terminateGame(gameState)
       }
     }
   }
