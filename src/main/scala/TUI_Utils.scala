@@ -53,7 +53,7 @@ object TUI_Utils {
     case _ => ()
   }
 
-  def getUserInput(): String = readLine.trim.toUpperCase
+  def getUserInput: String = readLine.trim.toUpperCase
 
   def getInputCoord2D(s : String) : Coord2D = {
     val coord = s.trim.split(",")
