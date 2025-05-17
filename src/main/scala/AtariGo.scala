@@ -272,13 +272,13 @@ object AtariGo extends App{
     @tailrec
     def mainLoop(gameState: GameState, random: MyRandom, board: Board): Unit = gameState.state match{
       
-      case State.NEW_GAME => {
+      case State.NEW_GAME =>
           val newBoard = initializeBoard(gameState.gameSize)
           val newState = gameState.copy(state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0)
           mainLoop(newState, random, newBoard)
-        }
+        
       
-      case State.IN_GAME => {
+      case State.IN_GAME =>
         val currGameState = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
         printGameState( gameState )
         drawBoard( board )
@@ -323,13 +323,11 @@ object AtariGo extends App{
             }
           }
         }
-      }
       
-      case _ => {
+      case _ =>
         showMenuPrompt( gameState )
         val userInput = getUserInput()
         val newState = handleMenuInput( gameState, userInput )
         mainLoop( newState, random, board )
-      }
     }
 }
