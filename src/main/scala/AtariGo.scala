@@ -61,16 +61,18 @@ object AtariGo extends App{
   def playRandomly(board:Board, r:MyRandom, player:Stone, lstOpenCoords:List[Coord2D],
                    f:(List[Coord2D], MyRandom) => (Coord2D,MyRandom)
                   ) : (Board,MyRandom,List[Coord2D]) = { //vamos usar a funcao myrandom no main para obter a coordenada aleatoria e o new rand
+    
     @tailrec
-    def getFreeCoord(coord2D: Coord2D = null, random:MyRandom): (Coord2D, MyRandom) = (coord2D == null || isCoordSurrounded(coord2D, board, player)) match {
-      case true => {
-        val (newCoord2D, myRandomInstance) = f(lstOpenCoords.filter(c => c == coord2D), random)
-        getFreeCoord(newCoord2D, myRandomInstance)
+    def getFreeCoord(random: MyRandom, coord2D: (Int, Int) = null): (Coord2D, MyRandom) = {
+      if (coord2D == null) {
+        val (newCoord, newRand) = f(lstOpenCoords, random) //obtemos a coordenada aleatória e o new rand
+        if (isCoordEmpty(newCoord, lstOpenCoords)) (newCoord, newRand)
+        else getFreeCoord( newRand, null ) //se a coordenada não estiver vazia chamamos novamente a funcao
       }
-      case false => (coord2D, random)
+      else (coord2D, random) //se a coordenada for diferente de null devolvemos a coordenada e o rand
     }
     
-    val (newCoord2D, myRandomInstance) = getFreeCoord(null, r) //obtemos a coordenada aleatória e o new rand
+    val (newCoord2D, myRandomInstance) = getFreeCoord( r, null ) //obtemos a coordenada aleatória e o new rand
     
     val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords) // dá-nos a board e lista de vazios atualizada
     newBoardRes match {
@@ -158,8 +160,11 @@ object AtariGo extends App{
     }
 
     def isCoordSurrounded(coord: Coord2D, board: Board, player:Stone): Boolean = {
-      val list = neighbors(getBoardSize(board), coord)
-      (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
+      if (coord == null) true
+      else {
+        val list = neighbors(getBoardSize(board), coord)
+        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
+      }
     }
     
     def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
@@ -195,11 +200,16 @@ object AtariGo extends App{
 
       iterateRows(board, coords, 0)
     }
-
-    def getCurrentStoneScore(currStone: Stone, gameState: GameState): Int = gameState.playerStone match {
-      case currStone => gameState.playerCap
+  
+    def getCurrentStoneScore(gameState: GameState): Int = {
+//      if( gameState.currentStone == gameState.playerStone ) gameState.playerCap
+//      else gameState.opponentCap
+      getOppositeStone(gameState.currentStone) match {
+      case s if s == gameState.playerStone => gameState.playerCap
       case _ => gameState.opponentCap
+      }
     }
+    
     // T5
 
     def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
@@ -261,7 +271,8 @@ object AtariGo extends App{
     def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
       
       case State.NEW_GAME =>
-        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start())
+        val newState = gameState.copy(  state = State.IN_GAME,
+                                        currentStone = Stone.Black,currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start())
         
         mainLoop( newState, random )
       
@@ -269,7 +280,9 @@ object AtariGo extends App{
       case State.IN_GAME =>
         print("\u001b[2J")       // Clear screen
         print("\u001b[H")        // Move cursor to top-left
-        val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState.currentStone, gameState) )
+        println("current Score: " + getCurrentStoneScore(gameState))
+        val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState) )
+        println(gameState.currentStone)
         printGameState( gameState )
         drawBoard( gameState.board )
         if( currGameState ) { //game reached a victory condition
