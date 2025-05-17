@@ -60,8 +60,18 @@ object AtariGo extends App{
   //  util para implementar 'Undo'
   def playRandomly(board:Board, r:MyRandom, player:Stone, lstOpenCoords:List[Coord2D],
                    f:(List[Coord2D], MyRandom) => (Coord2D,MyRandom)
-                  ) : (Board,MyRandom,List[Coord2D]) = {
-    val (newCoord2D, myRandomInstance) = f(lstOpenCoords, r) //vamos usar a funcao myrandom no main para obter a coordenada aleatoria e o new rand
+                  ) : (Board,MyRandom,List[Coord2D]) = { //vamos usar a funcao myrandom no main para obter a coordenada aleatoria e o new rand
+    @tailrec
+    def getFreeCoord(coord2D: Coord2D = null, random:MyRandom): (Coord2D, MyRandom) = (coord2D == null || isCoordSurrounded(coord2D, board, player)) match {
+      case true => {
+        val (newCoord2D, myRandomInstance) = f(lstOpenCoords.filter(c => c == coord2D), random)
+        getFreeCoord(newCoord2D, myRandomInstance)
+      }
+      case false => (coord2D, random)
+    }
+    
+    val (newCoord2D, myRandomInstance) = getFreeCoord(null, r) //obtemos a coordenada aleatória e o new rand
+    
     val (newBoardRes, updatedLstOpenCoords) = play(board, player, newCoord2D, lstOpenCoords) // dá-nos a board e lista de vazios atualizada
     newBoardRes match {
       case Some(newBoard) =>
