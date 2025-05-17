@@ -1,10 +1,8 @@
-import scala.annotation.tailrec
-import scala.collection.immutable.::
-import MyRandom.*
-import AtariGo.Stone.{Empty, Stone}
+import AtariGo.Stone.Stone
 import TUI_Utils.*
 
-import scala.io.StdIn.readLine // {getUserInput, printGameOver, printGameState, printableFlipResult, showMenuPrompt, tossCoin}
+import scala.annotation.tailrec
+import scala.collection.immutable.:: // {getUserInput, printGameOver, printGameState, printableFlipResult, showMenuPrompt, tossCoin}
 
 object AtariGo extends App{
 
@@ -240,68 +238,48 @@ object AtariGo extends App{
   //    List(Stone.Black, Stone.White, Stone.Empty, Stone.White, Stone.Empty)
   //  )
   
-  //    val b = List(
-  //      List(Stone.White, Stone.White, Stone.White, Stone.White, Stone.Empty),
-  //      List(Stone.Empty, Stone.Empty, Stone.White, Stone.Empty, Stone.White),
-  //      List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
-  //      List(Stone.Empty, Stone.Black, Stone.Empty, Stone.Empty, Stone.Empty),
-  //      List(Stone.Black, Stone.White, Stone.Empty, Stone.White, Stone.Empty)
-  //    )
-  
-  //  val b = List(
-  //    List( Stone.White, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty ),
-  //    List( Stone.Empty, Stone.Empty, Stone.White, Stone.Empty, Stone.White ),
-  //    List( Stone.Empty, Stone.White, Stone.Black, Stone.White, Stone.Empty ),
-  //    List( Stone.Empty, Stone.Empty, Stone.Empty, Stone.Empty, Stone.Empty ),
-  //    List( Stone.Empty, Stone.White, Stone.Empty, Stone.Empty, Stone.Empty )
-  //  )
-    
-    val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
-    val currState = GameState(State.MENU)
-    val r = MyRandom(System.currentTimeMillis())
-    val b = List(List())
-    
-    mainLoop(currState, r, b)
-
   //  to fix
   // - turn time
-  // - check if first time player side is always correct
-  // - check if captures are correct
   // - GUI
+    
+    val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
+    mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()), List(List()))
   
     @tailrec
-    def mainLoop(gameState: GameState, random: MyRandom, board: Board): Unit = gameState.state match{
+    def mainLoop(gameState: GameState, random: MyRandom, board: Board): Unit = gameState.state match {
       
       case State.NEW_GAME =>
-          val newBoard = initializeBoard(gameState.gameSize)
-          val newState = gameState.copy(state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0)
-          mainLoop(newState, random, newBoard)
+        val newBoard = initializeBoard( gameState.gameSize )
+        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0 )
         
+        mainLoop( newState, random, newBoard )
+      
       
       case State.IN_GAME =>
         val currGameState = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
         printGameState( gameState )
         drawBoard( board )
         if( currGameState != 0 ) { //game reached a victory condition
-          terminateGame( gameState )
+          val newState = terminateGame( gameState )
+          mainLoop( newState, random, board )
         }
         else // is in progress
         {
           //println("main game loop, currently ingame.")
           if( gameState.currentStone == gameState.playerStone ) {
-            val input = getUserInput()
+            val input = getUserInput
             val coord2D = getInputCoord2D( input )
             val (newBoard, _) = play( board, gameState.playerStone, coord2D, getBoardEmptyCoords( board ) )
+            
             newBoard match {
               case Some( boardAfter ) =>
-                val (capBoard, cap) = captureGroupStones( boardAfter, Stone.Black )
-                val newState = gameState.copy( playerCap = gameState.playerCap + cap, currentStone = getOppositeStone( gameState.playerStone ), currentTurn = gameState.currentTurn + 1 )
-                mainLoop( newState, random, capBoard )
-                
+                val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, gameState.playerStone )
+                val newState = gameState.copy( playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone( gameState.playerStone ), currentTurn = gameState.currentTurn + 1 )
+                mainLoop( newState, random, boardAfterPlay )
+              
               case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
                 if( input == "Q" ) {
-                  terminateGame( gameState )
-                  val newState = gameState.copy( state = State.MENU )
+                  val newState = terminateGame( gameState )
                   mainLoop( newState, random, board )
                 }
                 else {
@@ -310,24 +288,25 @@ object AtariGo extends App{
                 }
             }
           }
-          else
-          {
+          else {
             val (newBoard, r, _) = playRandomly( board, random, getOppositeStone( gameState.playerStone ), getBoardEmptyCoords( board ), funcRandMovePlay )
             newBoard match {
               case boardAfter =>
-                val (capBoard, cap) = captureGroupStones( boardAfter, getOppositeStone( gameState.playerStone ) )
-                val newState = gameState.copy( opponentCap = gameState.opponentCap + cap, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1 )
-                mainLoop( newState, r, capBoard )
+                val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, getOppositeStone( gameState.playerStone ) )
+                val newState = gameState.copy( opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1 )
+                mainLoop( newState, r, boardAfterPlay )
               case Nil =>
                 mainLoop( gameState, r, board )
             }
           }
         }
       
-      case _ =>
+      case menu_id if menu_id >= State.MENU && menu_id < State.NEW_GAME => //  Menu IDs Range
         showMenuPrompt( gameState )
-        val userInput = getUserInput()
+        val userInput = getUserInput
         val newState = handleMenuInput( gameState, userInput )
         mainLoop( newState, random, board )
+      
+      case _ => ()  //  Any other state, shuts down game (i.e. State.NONE)
     }
 }
