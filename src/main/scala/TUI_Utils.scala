@@ -1,10 +1,9 @@
-import AtariGo.{ Coord2D, INVALID_COORD, checkWinConditions, currState }
 import AtariGo.Stone.*
+import AtariGo.{ Coord2D, checkWinConditions }
+import TUI_Utils.State as state
 import TUI_Utils.State.*
 
 import scala.io.StdIn.readLine
-import MyRandom.*
-import TUI_Utils.State as state
 
 case class GameState(state:State,
                      currentTurnTimestamp:Long = 0,
@@ -24,13 +23,21 @@ object TUI_Utils {
     type State = Value
     //    type Captured = Boolean
     val NONE,
+    //  Menu IDs Section
         MENU,
         MENU_SET_GAME_SIZE,
         MENU_SET_CAP_LIMIT,
         MENU_SET_TURN_TIME_LIMIT,
         MENU_SET_PLAYER_STONE_COLOR,
+    //  Gameplay States
         NEW_GAME,
         IN_GAME = Value
+  }
+  
+  def stoneTranslate(stone:Stone) : String = stone match{
+    case Black => "Preta"
+    case White => "Branca"
+    case _ => "Vazio"
   }
   
   def showMenuPrompt(gameState:GameState): Unit = gameState.state match{
@@ -40,16 +47,15 @@ object TUI_Utils {
         println(s"2: Tamanho do tabuleiro <${gameState.gameSize}x${gameState.gameSize}>")
         println(s"3: Numero de capturas <${gameState.maxCap}>")
         println(s"4: Tempo de turno <${gameState.maxTurnTimeSec}s>")
-        println(s"5: Cor da pedra <${gameState.playerStone}>")
+        println(s"5: Cor da pedra <${stoneTranslate(gameState.playerStone)}>")
         println("6: Sair")
         print("Escolha uma opção: ")
       
     case State.MENU_SET_GAME_SIZE => print("Define o tamanho de tabuleiro [5-19]: ")
-    case State.MENU_SET_CAP_LIMIT => print(s"Define o numero maximo de capturas [1-${gameState.maxCap}: ")
+    case State.MENU_SET_CAP_LIMIT => print(s"Define o numero maximo de capturas [1-${gameState.gameSize}]: ")
     case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno em segundos [10-60]: ")
     case State.MENU_SET_PLAYER_STONE_COLOR =>
-      println("Define a cor da pedra do jogador")
-      print("(B)ranco ou (P)reto? ")
+      println("Define a cor da pedra do jogador. (B)ranco ou (P)reto?: ")
     case _ => ()
   }
 
@@ -67,14 +73,13 @@ object TUI_Utils {
   def handleMenuInput( menuState:GameState, userInput:String ) : GameState = menuState.state match{
     case State.MENU =>
       userInput match{
-        case "1" => menuState.copy(state = State.NEW_GAME, currentTurnTimestamp = System.currentTimeMillis())
-        case "2" => menuState.copy(state = State.MENU_SET_GAME_SIZE, currentTurnTimestamp = System.currentTimeMillis())
-        case "3" => menuState.copy(state = State.MENU_SET_CAP_LIMIT, currentTurnTimestamp = System.currentTimeMillis())
-        case "4" => menuState.copy(state = State.MENU_SET_TURN_TIME_LIMIT, currentTurnTimestamp = System.currentTimeMillis())
-        case "5" => menuState.copy(state = State.MENU_SET_PLAYER_STONE_COLOR, currentTurnTimestamp = System.currentTimeMillis())
+        case "1" => menuState.copy(state = State.NEW_GAME)
+        case "2" => menuState.copy(state = State.MENU_SET_GAME_SIZE)
+        case "3" => menuState.copy(state = State.MENU_SET_CAP_LIMIT)
+        case "4" => menuState.copy(state = State.MENU_SET_TURN_TIME_LIMIT)
+        case "5" => menuState.copy(state = State.MENU_SET_PLAYER_STONE_COLOR)
         case "6" | "Q" =>
             terminateGame(menuState)
-            menuState.copy(state = State.NONE)
       }
       
     case State.MENU_SET_GAME_SIZE =>
@@ -96,7 +101,7 @@ object TUI_Utils {
       case State.MENU_SET_CAP_LIMIT => print("Define o numero maximo de capturas: ")
         userInput.toIntOption match {
           case Some( number ) =>
-            if( number < 0 || number > menuState.gameSize ) {
+            if( number <= 0 || number > menuState.gameSize ) {
               print( "Valor inválido. " )
               menuState
             }
@@ -136,7 +141,7 @@ object TUI_Utils {
     println(s"Turno nº${gameState.currentTurn}")
   }
 
-  def terminateGame(gameState : GameState) : Unit = {
+  def terminateGame(gameState : GameState) : GameState = {
       if (gameState.state == IN_GAME)
       {
           val cond = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
@@ -147,11 +152,13 @@ object TUI_Utils {
               println( "\n=== PERDEU A PARTIDA ===\n" )
           else
               println( "\n=== DESISTIU DA PARTIDA ===\n" )
+        
+          gameState.copy( state = MENU )
       }
       else
       {
           println( "\n=== OBRIGADO POR JOGAR, ATÉ À PROXIMA! ===" )
-          sys.exit(0)
+          gameState.copy(state = NONE)
       }
   }
   
