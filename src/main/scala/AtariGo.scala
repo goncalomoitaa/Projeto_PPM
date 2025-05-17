@@ -187,6 +187,10 @@ object AtariGo extends App{
       iterateRows(board, coords, 0)
     }
 
+    def getCurrentStoneScore(currStone: Stone, gameState: GameState): Int = gameState.playerStone match {
+      case currStone => gameState.playerCap
+      case _ => gameState.opponentCap
+    }
     // T5
     def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
       val opponentStone = getOppositeStone(player)
@@ -214,25 +218,29 @@ object AtariGo extends App{
     }
 
     // T6
-    def checkWinConditions(capLimit: Int, playerScore: Int, opponentScore: Int): Int = {
+    def checkWinConditions(capLimit: Int, currentStoneScore: Int): Boolean = {
       // Retorna a cor da pedra que ganhou, None se ainda nao acabou o jogo
-      if (playerScore >= capLimit) 1
-      else if (opponentScore >= capLimit) -1
-      else 0
+      if ( currentStoneScore >= capLimit)
+        true
+      else
+        false
+    }
+    // T7
+
+    object Timer{
+      private val start: Long = System.currentTimeMillis()
+      private def elapsed: Long = System.currentTimeMillis() - start
+      def getSecondsElapsed: Int = (elapsed / 1000).toInt
     }
 
-    //  Refazer
-    //  def play(board: Board, currPlayer: Stone, move: Coord2D, lstOpenCoords: List[Coord2D], playerTurnTimestamp:Int, playerTurnMaxTime: Int, scores:(Int, Int)) : Stone = isPlayerTurnTimeUp(playerTurnTimestamp, playerTurnMaxTime) match{
-    //    case true => play(board, getOppositeStone(currPlayer), (-1,-1), lstOpenCoords, 0, playerTurnMaxTime, scores)
-    //    case false => {
-    //      // stuff
-    //      Stone.Black
-    //    }
-    //  }
-    // T7
-    //  Tempo de jogada do jogador acabou?
     def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
       if (System.currentTimeMillis() > playerTurnTimestamp + playerTurnMaxTime) true else false
+    }
+    
+    
+    def move(board: Board, player:Stone): (Board, Board) = {
+
+      (board, board)
     }
   //  val b = List(
   //    List(Stone.White, Stone.Black, Stone.Black, Stone.White, Stone.Empty),
@@ -260,10 +268,10 @@ object AtariGo extends App{
       
       
       case State.IN_GAME =>
-        val currGameState = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
+        val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState.currentStone, gameState) )
         printGameState( gameState )
         drawBoard( board )
-        if( currGameState != 0 ) { //game reached a victory condition
+        if( currGameState ) { //game reached a victory condition
           val newState = terminateGame( gameState )
           mainLoop( newState, random, board )
         }
@@ -283,7 +291,7 @@ object AtariGo extends App{
               
               case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
                 if( input == "Q" ) {
-                  val newState = terminateGame( gameState )
+                  val newState = quitGame(gameState)
                   mainLoop( newState, random, board )
                 }
                 else {

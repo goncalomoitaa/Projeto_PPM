@@ -14,7 +14,7 @@ case class GameState(state:State,
                      playerStone:Stone = Black,
                      playerCap:Int = 0,
                      opponentCap:Int = 0,
-                     currentStone:Stone = Black
+                     currentStone:Stone = Black,
                      )
 
 object TUI_Utils {
@@ -142,24 +142,22 @@ object TUI_Utils {
   }
 
   def terminateGame(gameState : GameState) : GameState = {
-      if (gameState.state == IN_GAME)
-      {
-          val cond = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
-          
-          if( cond == 1 )
-              println( "\n=== VENCEU A PARTIDA ===\n" )
-          else if (cond == -1 )
-              println( "\n=== PERDEU A PARTIDA ===\n" )
-          else
-              println( "\n=== DESISTIU DA PARTIDA ===\n" )
+        val playerWon = checkWinConditions( gameState.maxCap, gameState.playerCap )
         
-          gameState.copy( state = MENU )
-      }
-      else
-      {
-          println( "\n=== OBRIGADO POR JOGAR, ATÉ À PROXIMA! ===" )
-          gameState.copy(state = NONE)
-      }
+        if( playerWon )
+            println( "\n=== VENCEU A PARTIDA ===\n" )
+        else
+            println( "\n=== PERDEU A PARTIDA ===\n" )
+        gameState.copy( state = MENU )
   }
-  
+
+  def quitGame(gameState: GameState): GameState = {
+    if (gameState.state == IN_GAME) {
+      println("\n=== DESISTIU DA PARTIDA ===\n")
+      gameState.copy(state = MENU)
+    } else {
+      println("\n=== OBRIGADO POR JOGAR, ATÉ À PROXIMA! ===")
+      gameState.copy(state = NONE)
+    }
+  }
 }
