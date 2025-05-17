@@ -116,8 +116,7 @@ object AtariGo extends App{
       }
     }
 
-    def neighbors(board: Board, coord: Coord2D): List[Coord2D] = {
-      val boardSize = getBoardSize(board)
+    def neighbors(boardSize: Int, coord: Coord2D): List[Coord2D] = {
       List(
         (coord._1 - 1, coord._2), // left
         (coord._1 + 1, coord._2), // right
@@ -134,36 +133,30 @@ object AtariGo extends App{
           if (visited.contains(head))
             getGroupAux(tail, visited)
           else
-            val currStoneNeighbors = neighbors(board, head)
+            val currStoneNeighbors = neighbors(getBoardSize(board), head)
             val x = currStoneNeighbors.filter((l, r) => board(l)(r).equals(board(head._1)(head._2)) && !visited.contains(head)) //????
             getGroupAux(tail ++ x, head :: visited)
       }
 
       getGroupAux(List(startCoord), List())
     }
-  
-    def checkCoord(coord: Coord2D, board: Board, player: Stone): Boolean = {
-      val list = neighbors( board, coord )
-      ( list foldRight true )( (x, r) => !board( x._1 )( x._2 ).equals( Stone.Empty ) && r )
-    }
-    
+
     def isCoordSurrounded(coord: Coord2D, board: Board, player:Stone): Boolean = {
-      val list = neighbors(board, coord)
+      val list = neighbors(getBoardSize(board), coord)
       (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
     }
     
     def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
+      def checkCoord(coord: Coord2D, board: Board, player: Stone): Boolean = {
+        val list = neighbors(getBoardSize(board), coord)
+        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && r)
+      }
+
       def checkGroup(groupAux: List[Coord2D]): Boolean = {
         (groupAux foldRight true)((x, r) => checkCoord(x, board, player) && r)
       }
 
       checkGroup(group)
-    }
-
-    def removeCapturedFromBoard(board: Board, group: List[Coord2D]): Board = {
-      group.foldLeft(board) { case (b, Coord2D(row, col)) =>
-        b.updated(row, b(row).updated(col, Stone.Empty))
-      }
     }
 
     def removeStonesFromBoard(board: Board, coords: List[Coord2D]): Board = {
@@ -192,6 +185,7 @@ object AtariGo extends App{
       case _ => gameState.opponentCap
     }
     // T5
+
     def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
       val opponentStone = getOppositeStone(player)
 
@@ -227,53 +221,44 @@ object AtariGo extends App{
     }
     // T7
 
-    object Timer{
-      private val start: Long = System.currentTimeMillis()
-      private def elapsed: Long = System.currentTimeMillis() - start
-      def getSecondsElapsed: Int = (elapsed / 1000).toInt
-    }
+  class Timer private(start: Long) {
+    def getMillisElapsed: Long = System.currentTimeMillis() - start
+
+    def getSecondsElapsed: Int = (getMillisElapsed / 1000).toInt
+  }
+
+  object Timer {
+    def start(): Timer = new Timer(System.currentTimeMillis())
+  }
 
     def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
-      if (System.currentTimeMillis() > playerTurnTimestamp + playerTurnMaxTime) true else false
+      if (playerTurnTimestamp > playerTurnMaxTime) true else false
     }
-    
-    
-    def move(board: Board, player:Stone): (Board, Board) = {
 
-      (board, board)
-    }
-  //  val b = List(
-  //    List(Stone.White, Stone.Black, Stone.Black, Stone.White, Stone.Empty),
-  //    List(Stone.Empty, Stone.Empty, Stone.White, Stone.Empty, Stone.Empty),
-  //    List(Stone.Empty, Stone.Empty, Stone.Empty, Stone.White, Stone.Empty),
-  //    List(Stone.White, Stone.Black, Stone.Empty, Stone.Empty, Stone.Empty),
-  //    List(Stone.Black, Stone.White, Stone.Empty, Stone.White, Stone.Empty)
-  //  )
-  
   //  to fix
-  // - turn time
   // - GUI
     
     val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
-    mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()), List(List()))
+    mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()))
   
     @tailrec
-    def mainLoop(gameState: GameState, random: MyRandom, board: Board): Unit = gameState.state match {
+    def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
       
       case State.NEW_GAME =>
-        val newBoard = initializeBoard( gameState.gameSize )
-        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0 )
+        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start() )
         
-        mainLoop( newState, random, newBoard )
+        mainLoop( newState, random )
       
       
       case State.IN_GAME =>
+        print("\u001b[2J")       // Clear screen
+        print("\u001b[H")        // Move cursor to top-left
         val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState.currentStone, gameState) )
         printGameState( gameState )
-        drawBoard( board )
+        drawBoard( gameState.board )
         if( currGameState ) { //game reached a victory condition
           val newState = terminateGame( gameState )
-          mainLoop( newState, random, board )
+          mainLoop( newState, random)
         }
         else // is in progress
         {
@@ -281,34 +266,41 @@ object AtariGo extends App{
           if( gameState.currentStone == gameState.playerStone ) {
             val input = getUserInput
             val coord2D = getInputCoord2D( input )
-            val (newBoard, _) = play( board, gameState.playerStone, coord2D, getBoardEmptyCoords( board ) )
-            
+            val (newBoard, _) = play( gameState.board, gameState.playerStone, coord2D, getBoardEmptyCoords( gameState.board ) )
             newBoard match {
-              case Some( boardAfter ) =>
-                val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, gameState.playerStone )
-                val newState = gameState.copy( playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone( gameState.playerStone ), currentTurn = gameState.currentTurn + 1 )
-                mainLoop( newState, random, boardAfterPlay )
-              
-              case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
-                if( input == "Q" ) {
-                  val newState = quitGame(gameState)
-                  mainLoop( newState, random, board )
+              case Some(boardAfter) =>
+                val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, gameState.playerStone)
+                if (!isPlayerTurnTimeUp(gameState.turnTimer.getSecondsElapsed, gameState.maxTurnTimeSec)){
+                  val newState = gameState.copy(playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1, board = boardAfterPlay)
+                  println(gameState.turnTimer.getSecondsElapsed)
+                  mainLoop(newState, random)
                 }
                 else {
-                  println( "Jogada inválida, tenta outra vez" )
-                  mainLoop( gameState, random, board )
+                  val newState = gameState.copy(playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1)
+                  println("\u001b[31mTempo de turno esgotado!\u001b[0m")
+                  println(gameState.turnTimer.getSecondsElapsed)
+                  mainLoop(newState, random)
+                }
+              case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
+                if (input == "Q") {
+                  val newState = quitGame(gameState)
+                  mainLoop(newState, random)
+                }
+                else {
+                  println("Jogada inválida, tenta outra vez")
+                  mainLoop(gameState, random)
                 }
             }
           }
-          else {
-            val (newBoard, r, _) = playRandomly( board, random, getOppositeStone( gameState.playerStone ), getBoardEmptyCoords( board ), funcRandMovePlay )
+          else {  // CPU Player turn
+            val (newBoard, r, _) = playRandomly( gameState.board, random, getOppositeStone( gameState.playerStone ), getBoardEmptyCoords( gameState.board ), funcRandMovePlay )
             newBoard match {
               case boardAfter =>
                 val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, getOppositeStone( gameState.playerStone ) )
-                val newState = gameState.copy( opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1 )
-                mainLoop( newState, r, boardAfterPlay )
+                val newState = gameState.copy( opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
+                mainLoop( newState, r )
               case Nil =>
-                mainLoop( gameState, r, board )
+                mainLoop( gameState, r )
             }
           }
         }
@@ -317,7 +309,7 @@ object AtariGo extends App{
         showMenuPrompt( gameState )
         val userInput = getUserInput
         val newState = handleMenuInput( gameState, userInput )
-        mainLoop( newState, random, board )
+        mainLoop( newState, random )
       
       case _ => ()  //  Any other state, shuts down game (i.e. State.NONE)
     }

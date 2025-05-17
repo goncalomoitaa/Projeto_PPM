@@ -1,20 +1,21 @@
 import AtariGo.Stone.*
-import AtariGo.{ Coord2D, checkWinConditions }
+import AtariGo.{Board, Coord2D, checkWinConditions, Timer}
 import TUI_Utils.State as state
 import TUI_Utils.State.*
 
 import scala.io.StdIn.readLine
 
 case class GameState(state:State,
-                     currentTurnTimestamp:Long = 0,
+                     turnTimer:Timer = Timer.start(),
                      currentTurn:Int = 0,
                      gameSize:Int = 5,
                      maxCap:Int = 1,
-                     maxTurnTimeSec:Int = 60,
+                     maxTurnTimeSec:Int = 5,
                      playerStone:Stone = Black,
                      playerCap:Int = 0,
                      opponentCap:Int = 0,
                      currentStone:Stone = Black,
+                     board: Board = Nil
                      )
 
 object TUI_Utils {
@@ -53,7 +54,7 @@ object TUI_Utils {
       
     case State.MENU_SET_GAME_SIZE => print("Define o tamanho de tabuleiro [5-19]: ")
     case State.MENU_SET_CAP_LIMIT => print(s"Define o numero maximo de capturas [1-${gameState.gameSize}]: ")
-    case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno em segundos [10-60]: ")
+    case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno em segundos [5-60]: ")
     case State.MENU_SET_PLAYER_STONE_COLOR =>
       println("Define a cor da pedra do jogador. (B)ranco ou (P)reto?: ")
     case _ => ()
@@ -116,7 +117,7 @@ object TUI_Utils {
       case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno: ")
         userInput.toIntOption match {
           case Some( number ) =>
-            if( number < 10 || number > 60 ) {
+            if( number < 5 || number > 60 ) {
               print( "Valor inválido. " )
               menuState
             }
