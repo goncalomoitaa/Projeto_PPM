@@ -141,6 +141,12 @@ object AtariGo extends App{
       getGroupAux(List(startCoord), List())
     }
 
+    def undo(gameState: GameState): GameState = {
+      val oldState = gameState.oldState.copy(turnTimer = Timer.start())
+      if (oldState != null) oldState
+      else gameState
+    }
+
     def isCoordSurrounded(coord: Coord2D, board: Board, player:Stone): Boolean = {
       val list = neighbors(getBoardSize(board), coord)
       (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
@@ -245,7 +251,7 @@ object AtariGo extends App{
     def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
       
       case State.NEW_GAME =>
-        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start() )
+        val newState = gameState.copy( state = State.IN_GAME, currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start())
         
         mainLoop( newState, random )
       
@@ -271,12 +277,12 @@ object AtariGo extends App{
               case Some(boardAfter) =>
                 val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, gameState.playerStone)
                 if (!isPlayerTurnTimeUp(gameState.turnTimer.getSecondsElapsed, gameState.maxTurnTimeSec)){
-                  val newState = gameState.copy(playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1, board = boardAfterPlay)
+                  val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1, board = boardAfterPlay)
                   println(gameState.turnTimer.getSecondsElapsed)
                   mainLoop(newState, random)
                 }
                 else {
-                  val newState = gameState.copy(playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1)
+                  val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1)
                   println("\u001b[31mTempo de turno esgotado!\u001b[0m")
                   println(gameState.turnTimer.getSecondsElapsed)
                   mainLoop(newState, random)
@@ -284,6 +290,14 @@ object AtariGo extends App{
               case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
                 if (input == "Q") {
                   val newState = quitGame(gameState)
+                  mainLoop(newState, random)
+                }
+                else if (input == "U"){
+                  val newState = undo(gameState)
+                  mainLoop(newState, random)
+                }
+                else if (input == "R") {
+                  val newState = gameState.copy(state = State.MENU)
                   mainLoop(newState, random)
                 }
                 else {
@@ -297,7 +311,7 @@ object AtariGo extends App{
             newBoard match {
               case boardAfter =>
                 val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, getOppositeStone( gameState.playerStone ) )
-                val newState = gameState.copy( opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
+                val newState = gameState.copy(opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
                 mainLoop( newState, r )
               case Nil =>
                 mainLoop( gameState, r )
