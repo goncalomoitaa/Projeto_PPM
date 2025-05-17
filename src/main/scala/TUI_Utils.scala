@@ -81,7 +81,7 @@ object TUI_Utils {
         case "4" => menuState.copy(state = State.MENU_SET_TURN_TIME_LIMIT)
         case "5" => menuState.copy(state = State.MENU_SET_PLAYER_STONE_COLOR)
         case "6" | "Q" =>
-            terminateGame(menuState)
+            quitGame(menuState)
       }
       
     case State.MENU_SET_GAME_SIZE =>
@@ -144,13 +144,15 @@ object TUI_Utils {
   }
 
   def terminateGame(gameState : GameState) : GameState = {
-        val playerWon = checkWinConditions( gameState.maxCap, gameState.playerCap )
-        
-        if( playerWon )
-            println( "\n=== VENCEU A PARTIDA ===\n" )
-        else
-            println( "\n=== PERDEU A PARTIDA ===\n" )
-        gameState.copy( state = MENU )
+      val playerWon = checkWinConditions( gameState.maxCap, gameState.playerCap )
+      
+      if( playerWon )
+          println( "\n=== VENCEU A PARTIDA ===\n" )
+      else
+          println( "\n=== PERDEU A PARTIDA ===\n" )
+          
+      gameState.copy( state = MENU )
+
   }
 
   def quitGame(gameState: GameState): GameState = {
