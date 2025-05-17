@@ -204,7 +204,7 @@ object AtariGo extends App{
     def getCurrentStoneScore(gameState: GameState): Int = {
 //      if( gameState.currentStone == gameState.playerStone ) gameState.playerCap
 //      else gameState.opponentCap
-      getOppositeStone(gameState.currentStone) match {
+      getOppositeStone(gameState.currentStone) match {  // small hack
       case s if s == gameState.playerStone => gameState.playerCap
       case _ => gameState.opponentCap
       }
@@ -280,9 +280,7 @@ object AtariGo extends App{
       case State.IN_GAME =>
         print("\u001b[2J")       // Clear screen
         print("\u001b[H")        // Move cursor to top-left
-        println("current Score: " + getCurrentStoneScore(gameState))
         val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState) )
-        println(gameState.currentStone)
         printGameState( gameState )
         drawBoard( gameState.board )
         if( currGameState ) { //game reached a victory condition
@@ -291,7 +289,6 @@ object AtariGo extends App{
         }
         else // is in progress
         {
-          //println("main game loop, currently ingame.")
           if( gameState.currentStone == gameState.playerStone ) {
             val input = getUserInput
             val coord2D = getInputCoord2D( input )
