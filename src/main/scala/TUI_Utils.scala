@@ -1,8 +1,10 @@
-import AtariGo.Stone._
+import AtariGo.{ Coord2D, INVALID_COORD, checkWinConditions, currState }
+import AtariGo.Stone.*
 import TUI_Utils.State.*
 
 import scala.io.StdIn.readLine
 import MyRandom.*
+import TUI_Utils.State as state
 
 case class GameState(state:State,
                      currentTurnTimestamp:Long = 0,
@@ -12,7 +14,9 @@ case class GameState(state:State,
                      maxTurnTimeSec:Int = 60,
                      playerStone:Stone = Black,
                      playerCap:Int = 0,
-                     opponentCap:Int = 0)
+                     opponentCap:Int = 0,
+                     currentStone:Stone = Black
+                     )
 
 object TUI_Utils {
   
@@ -25,67 +29,130 @@ object TUI_Utils {
         MENU_SET_CAP_LIMIT,
         MENU_SET_TURN_TIME_LIMIT,
         MENU_SET_PLAYER_STONE_COLOR,
+        NEW_GAME,
         IN_GAME = Value
   }
   
-  def showMenuPrompt(state:State): Unit = state match{
+  def showMenuPrompt(gameState:GameState): Unit = gameState.state match{
     case State.MENU =>
-      println("Atari Go:")
-      println("1: Comecar o jogo ")
-      println("2: Tamanho do tabuleiro")
-      println("3: Numero de capturas")
-      println("4: Tempo de turno")
-      println("5: Cor da pedra")
-      println("6: Sair")
+        println("Atari Go:")
+        println("1: Comecar o jogo ")
+        println(s"2: Tamanho do tabuleiro <${gameState.gameSize}x${gameState.gameSize}>")
+        println(s"3: Numero de capturas <${gameState.maxCap}>")
+        println(s"4: Tempo de turno <${gameState.maxTurnTimeSec}s>")
+        println(s"5: Cor da pedra <${gameState.playerStone}>")
+        println("6: Sair")
+        print("Escolha uma opção: ")
       
-    case State.MENU_SET_GAME_SIZE => print("Define o tamanho da tabela: ")
-    case State.MENU_SET_CAP_LIMIT => print("Define o numero maximo de capturas: ")
-    case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno (segundos): ")
+    case State.MENU_SET_GAME_SIZE => print("Define o tamanho de tabuleiro [5-19]: ")
+    case State.MENU_SET_CAP_LIMIT => print(s"Define o numero maximo de capturas [1-${gameState.maxCap}: ")
+    case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno em segundos [10-60]: ")
     case State.MENU_SET_PLAYER_STONE_COLOR =>
       println("Define a cor da pedra do jogador")
       print("(B)ranco ou (P)reto? ")
     case _ => ()
   }
 
-  def getUserInput: String = readLine.trim.toUpperCase
+  def getUserInput(): String = readLine.trim.toUpperCase
+
+  def getInputCoord2D(s : String) : Coord2D = {
+    val coord = s.trim.split(",")
+    if(coord.length == 2)
+        (coord(0).trim.toInt, coord(1).trim.toInt)
+    else
+        (-1, -1)    // invalid coord
+      //throw new IllegalArgumentException("formato errado!!")
+  }
   
   def handleMenuInput( menuState:GameState, userInput:String ) : GameState = menuState.state match{
     case State.MENU =>
       userInput match{
-        case "1" => GameState(State.IN_GAME,
-                              System.currentTimeMillis(),
-                              1,
-                              menuState.gameSize,
-                              menuState.maxCap,
-                              menuState.maxTurnTimeSec,
-                              menuState.playerStone)        //  0, 0 é desnecessario, sao valores default
+        case "1" => menuState.copy(state = State.NEW_GAME, currentTurnTimestamp = System.currentTimeMillis())
+        case "2" => menuState.copy(state = State.MENU_SET_GAME_SIZE, currentTurnTimestamp = System.currentTimeMillis())
+        case "3" => menuState.copy(state = State.MENU_SET_CAP_LIMIT, currentTurnTimestamp = System.currentTimeMillis())
+        case "4" => menuState.copy(state = State.MENU_SET_TURN_TIME_LIMIT, currentTurnTimestamp = System.currentTimeMillis())
+        case "5" => menuState.copy(state = State.MENU_SET_PLAYER_STONE_COLOR, currentTurnTimestamp = System.currentTimeMillis())
+        case "6" | "Q" =>
+            terminateGame(menuState)
+            menuState.copy(state = State.NONE)
       }
-    /*case State.MENU_SET_GAME_SIZE => print("Define o tamanho da tabela: ")
-      userInput match{
       
-      }
-    case State.MENU_SET_CAP_LIMIT => print("Define o numero maximo de capturas: ")
-      userInput match{
+    case State.MENU_SET_GAME_SIZE =>
+        userInput.toIntOption match {
+            case Some(number) =>
+              if( number < 5 || number > 19 ) {
+                print( "Valor inválido. " )
+                menuState
+              }
+              else {
+                println(s"Definiu um novo tamanho de tabuleiro: $number")
+                menuState.copy( state = State.MENU, gameSize = number)
+              }
+            case None =>
+                print("Valor inválido. ")
+                menuState
+        }
       
-      }
-    case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno: ")
-      userInput match{
-      
-      }
+      case State.MENU_SET_CAP_LIMIT => print("Define o numero maximo de capturas: ")
+        userInput.toIntOption match {
+          case Some( number ) =>
+            if( number < 0 || number > menuState.gameSize ) {
+              print( "Valor inválido. " )
+              menuState
+            }
+            else {
+              println( s"Definiu um novo numero maximo de capturas: $number" )
+              menuState.copy( state = State.MENU, maxCap = number )
+            }
+          case None =>
+            print( "Valor inválido. " )
+            menuState
+        }
+      case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno: ")
+        userInput.toIntOption match {
+          case Some( number ) =>
+            if( number < 10 || number > 60 ) {
+              print( "Valor inválido. " )
+              menuState
+            }
+            else {
+              println( s"Definiu um novo tempo limite por turno: $number" )
+              menuState.copy( state = State.MENU, maxTurnTimeSec = number )
+            }
+          case None =>
+            print( "Valor inválido. " )
+            menuState
+        }
     case State.MENU_SET_PLAYER_STONE_COLOR =>
-      userInput match{
-      
-      }*/
+      userInput match {
+        case "B" => menuState.copy( state = State.MENU, playerStone = White )
+        case "P" => menuState.copy( state = State.MENU, playerStone = Black )
+        case _ => menuState
+      }
   }
   
   def printGameState(gameState: GameState): Unit = {
-    println(s"#Jogador: ${gameState.playerCap}, #Oponente: ${gameState.opponentCap}")
-    println(s"#Limite: ${gameState.maxCap}")
+    println(s"#Jogador: ${gameState.playerCap}, #Oponente: ${gameState.opponentCap} | #Limite: ${gameState.maxCap}")
+    println(s"Turno nº${gameState.currentTurn}")
   }
 
-  def terminateGame(gameState : GameState) : Unit = 
-  {
-    println("\n=== GAME OVER ===")
+  def terminateGame(gameState : GameState) : Unit = {
+      if (gameState.state == IN_GAME)
+      {
+          val cond = checkWinConditions( gameState.maxCap, gameState.playerCap, gameState.opponentCap )
+          
+          if( cond == 1 )
+              println( "\n=== VENCEU A PARTIDA ===\n" )
+          else if (cond == -1 )
+              println( "\n=== PERDEU A PARTIDA ===\n" )
+          else
+              println( "\n=== DESISTIU DA PARTIDA ===\n" )
+      }
+      else
+      {
+          println( "\n=== OBRIGADO POR JOGAR, ATÉ À PROXIMA! ===" )
+          sys.exit(0)
+      }
   }
   
 }
