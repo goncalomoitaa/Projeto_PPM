@@ -96,9 +96,13 @@ object AtariGo extends App{
         case Nil => () //caso seja a linha vazia retorna ()
         case head :: tail =>
           head match {
-            case Stone.Empty => print(" . ")
-            case Stone.Black => print(" B ")
-            case Stone.White => print(" W ")
+//            case Stone.Empty => print(" . ")
+//            case Stone.Black => print(" B ")
+//            case Stone.White => print(" W ")
+            //  Fancy ANSI Color escape codes
+            case Stone.Empty => print("\u001b[0m . ")
+            case Stone.Black => print("\u001b[40m . \u001b[0m")
+            case Stone.White => print("\u001b[48;2;245;245;245m . \u001b[0m")
           }
           drawLine(tail) //desenha o resto da linha
       }
