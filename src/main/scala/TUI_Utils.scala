@@ -15,7 +15,8 @@ case class GameState(state:State,
                      playerCap:Int = 0,
                      opponentCap:Int = 0,
                      currentStone:Stone = Black,
-                     board: Board = Nil
+                     board: Board = Nil,
+                     oldState: GameState = null,
                      )
 
 object TUI_Utils {
