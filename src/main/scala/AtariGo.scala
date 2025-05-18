@@ -248,8 +248,7 @@ object AtariGo extends App{
     // T7
 
   class Timer private(start: Long) {
-    def getMillisElapsed: Long = System.currentTimeMillis() - start
-
+    private def getMillisElapsed: Long = System.currentTimeMillis() - start
     def getSecondsElapsed: Int = (getMillisElapsed / 1000).toInt
   }
 
