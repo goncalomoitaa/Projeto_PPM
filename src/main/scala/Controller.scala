@@ -5,6 +5,9 @@ import javafx.scene.input.{ MouseEvent, TouchEvent }
 import javafx.scene.layout.GridPane
 import javafx.scene.paint.Color
 
+import javafx.scene.input.MouseEvent
+import javafx.scene.layout.GridPane
+
 import java.net.URL
 import java.util.ResourceBundle
 
@@ -19,6 +22,7 @@ class Controller extends Initializable{
 //    private var label1: Label = _
     @FXML
     private var topLeftCircle : Circle = _
+    @FXML
     private var boardGrid : GridPane = _
     
     override def initialize(url: URL, resourceBundle: ResourceBundle): Unit = {
@@ -29,6 +33,24 @@ class Controller extends Initializable{
 //        GridPane.setColumnIndex( topLeftCircle, 0 )
     }
     
+    @FXML
+    def onGameBoardClick(event: MouseEvent): Unit = {
+        val mouseX = event.getX
+        val mouseY = event.getY
+        
+        val cols = boardGrid.getColumnConstraints.size()
+        val rows = boardGrid.getRowConstraints.size()
+        
+        val cellWidth = boardGrid.getWidth / cols
+        val cellHeight = boardGrid.getHeight / rows
+        
+        val col = ( mouseX / cellWidth ).toInt
+        val row = ( mouseY / cellHeight ).toInt
+        
+        println( s"Grid clicked at row=$row, column=$col" )
+    }
+    
+    @FXML
     def OnMouseClickedCircle(event: MouseEvent): Unit = {
         topLeftCircle.setOpacity(1.0)
         println("Mouse clicked!")
