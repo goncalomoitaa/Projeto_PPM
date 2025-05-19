@@ -7,7 +7,7 @@ class HelloWorld extends Application {
     override def start(primaryStage: Stage): Unit = {
         primaryStage.setTitle("My Hello World App")
         val fxmlLoader =
-            new FXMLLoader(getClass.getResource("Controller.fxml"))
+            new FXMLLoader(getClass.getResource("Game.fxml"))
         val mainViewRoot: Parent = fxmlLoader.load()
         val scene = new Scene(mainViewRoot)
         primaryStage.setScene(scene)

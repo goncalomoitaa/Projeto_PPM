@@ -44,8 +44,7 @@ object AtariGo extends App{
       else
         head :: filterOutCoord(tail, targetCoord)
   }
-
-  //  T2
+  
   def play(board : Board, player : Stone, coord : Coord2D, lstOpenCoords : List[Coord2D]) : (Option[Board], List[Coord2D]) = {//option
     if(!isCoordEmpty(coord, lstOpenCoords) || isCoordSurrounded(coord, board, player))//se nao estiver na lista de coordenadas vazias é porque já foi preenchida
       (None, lstOpenCoords) //não tem nada
@@ -54,10 +53,7 @@ object AtariGo extends App{
       val newBoard = board.updated(row, board(row).updated(column, player))   // atualiza a board com o novo elemento
       (Some(newBoard), filterOutCoord(lstOpenCoords, coord)) //tem algo
   }
-
-  //  T3
-  //  prof diz que podemos adicionar a posicao que foi jogada na tuple retornada.
-  //  util para implementar 'Undo'
+  
   def playRandomly(board:Board, r:MyRandom, player:Stone, lstOpenCoords:List[Coord2D],
                    f:(List[Coord2D], MyRandom) => (Coord2D,MyRandom)
                   ) : (Board,MyRandom,List[Coord2D]) = { //vamos usar a funcao myrandom no main para obter a coordenada aleatoria e o new rand
@@ -98,8 +94,7 @@ object AtariGo extends App{
 
       loopRowLists(board, 0) //começa na linha 0
     }
-
-    //  T4
+  
     @tailrec //garante que faça recursivamente e n faça overflow
     def drawBoard(board: Board): Unit = { //desenha a board
 
@@ -209,9 +204,7 @@ object AtariGo extends App{
       case _ => gameState.opponentCap
       }
     }
-    
-    // T5
-
+  
     def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
       val opponentStone = getOppositeStone(player)
 
@@ -236,8 +229,7 @@ object AtariGo extends App{
       val amountCaptured = capturedOpponentStonesList.length
       (removeStonesFromBoard(board, capturedOpponentStonesList), amountCaptured)
     }
-
-    // T6
+  
     def checkWinConditions(capLimit: Int, currentStoneScore: Int): Boolean = {
       // Retorna a cor da pedra que ganhou, None se ainda nao acabou o jogo
       if ( currentStoneScore >= capLimit)
@@ -245,7 +237,6 @@ object AtariGo extends App{
       else
         false
     }
-    // T7
 
   class Timer private(start: Long) {
     private def getMillisElapsed: Long = System.currentTimeMillis() - start
@@ -256,18 +247,15 @@ object AtariGo extends App{
     def start(): Timer = new Timer(System.currentTimeMillis())
   }
 
-    def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
-      if (playerTurnTimestamp > playerTurnMaxTime) true else false
-    }
-
-  //  to fix
-  // - GUI
-    
-    val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
-    mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()))
+  def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
+    if (playerTurnTimestamp > playerTurnMaxTime) true else false
+  }
   
-    @tailrec
-    def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
+  val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
+  mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()))
+  
+  @tailrec
+  def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
       
       case State.NEW_GAME =>
         val newState = gameState.copy(  state = State.IN_GAME,

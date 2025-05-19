@@ -20,7 +20,7 @@ case class GameState(state:State,
                      )
 
 object TUI_Utils {
-  
+
   object State extends Enumeration{
     type State = Value
     //    type Captured = Boolean
@@ -35,13 +35,13 @@ object TUI_Utils {
         NEW_GAME,
         IN_GAME = Value
   }
-  
+
   def stoneTranslate(stone:Stone) : String = stone match{
     case Black => "Preta"
     case White => "Branca"
     case _ => "Vazio"
   }
-  
+
   def showMenuPrompt(gameState:GameState): Unit = gameState.state match{
     case State.MENU =>
         println("Atari Go:")
@@ -52,7 +52,7 @@ object TUI_Utils {
         println(s"5: Cor da pedra <${stoneTranslate(gameState.playerStone)}>")
         println("6: Sair")
         print("Escolha uma opção: ")
-      
+
     case State.MENU_SET_GAME_SIZE => print("Define o tamanho de tabuleiro [5-19]: ")
     case State.MENU_SET_CAP_LIMIT => print(s"Define o numero maximo de capturas [1-${gameState.gameSize}]: ")
     case State.MENU_SET_TURN_TIME_LIMIT => print("Define o tempo limite de cada turno em segundos [5-60]: ")
@@ -71,7 +71,7 @@ object TUI_Utils {
         (-1, -1)    // invalid coord
       //throw new IllegalArgumentException("formato errado!!")
   }
-  
+
   def handleMenuInput( menuState:GameState, userInput:String ) : GameState = menuState.state match{
     case State.MENU =>
       userInput match{
@@ -83,7 +83,7 @@ object TUI_Utils {
         case "6" | "Q" =>
             quitGame(menuState)
       }
-      
+
     case State.MENU_SET_GAME_SIZE =>
         userInput.toIntOption match {
             case Some(number) =>
@@ -99,7 +99,7 @@ object TUI_Utils {
                 print("Valor inválido. ")
                 menuState
         }
-      
+
       case State.MENU_SET_CAP_LIMIT => print("Define o numero maximo de capturas: ")
         userInput.toIntOption match {
           case Some( number ) =>
@@ -137,7 +137,7 @@ object TUI_Utils {
         case _ => menuState
       }
   }
-  
+
   def printGameState(gameState: GameState): Unit = {
     println(s"#Jogador: ${gameState.playerCap}, #Oponente: ${gameState.opponentCap} | #Limite: ${gameState.maxCap}")
     println(s"Turno nº${gameState.currentTurn}")
@@ -145,12 +145,12 @@ object TUI_Utils {
 
   def terminateGame(gameState : GameState) : GameState = {
       val playerWon = checkWinConditions( gameState.maxCap, gameState.playerCap )
-      
+
       if( playerWon )
           println( "\n=== VENCEU A PARTIDA ===\n" )
       else
           println( "\n=== PERDEU A PARTIDA ===\n" )
-          
+
       gameState.copy( state = MENU )
 
   }
