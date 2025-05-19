@@ -41,7 +41,7 @@
                   <Circle radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
                   <Circle fill="WHITE" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
                   <Circle fill="WHITE" layoutX="260.0" layoutY="160.0" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
-                  <Circle fx:id="topLeftCircle" layoutX="160.0" layoutY="160.0" onMouseClicked="#OnMouseClickedCircle" onTouchPressed="#OnTouchCircle" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
+                  <Circle fx:id="topLeftCircle" layoutX="160.0" layoutY="160.0" onMouseClicked="#OnMouseClickedCircle" onMouseEntered="#onMouseEnteredCircle" onMouseExited="#onMouseExitedCircle" onTouchPressed="#OnTouchCircle" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
                   <Circle layoutX="45.0" layoutY="60.0" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
                   <Circle layoutX="45.0" layoutY="60.0" radius="35.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
                </children>

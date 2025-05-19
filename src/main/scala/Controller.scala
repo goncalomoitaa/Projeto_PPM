@@ -1,9 +1,13 @@
-import javafx.fxml.FXML
-import javafx.scene.control.{Button, Label, TextField}
+import javafx.fxml.{ FXML, Initializable }
+import javafx.scene.control.{ Button, Label, TextField }
 import javafx.scene.shape.Circle
 import javafx.scene.input.{ MouseEvent, TouchEvent }
+import javafx.scene.paint.Color
 
-class Controller {
+import java.net.URL
+import java.util.ResourceBundle
+
+class Controller extends Initializable{
 //    @FXML
 //    private var button1: Button = _
 //    @FXML
@@ -15,12 +19,29 @@ class Controller {
     @FXML
     private var topLeftCircle : Circle = _
     
+    override def initialize(url: URL, resourceBundle: ResourceBundle): Unit = {
+        
+        topLeftCircle.setFill(Color.WHITE)
+        topLeftCircle.setOpacity(0.0)
+    }
+    
     def OnMouseClickedCircle(event: MouseEvent): Unit = {
+        topLeftCircle.setOpacity(1.0)
         println("Mouse clicked!")
     }
     
     def OnTouchCircle(event: TouchEvent): Unit = {
         println("Touch pressed!")
+    }
+    
+    def onMouseEnteredCircle(event: MouseEvent): Unit = {
+        topLeftCircle.setOpacity(0.5)
+        println("Mouse entered!")
+    }
+    
+    def onMouseExitedCircle(event: MouseEvent): Unit = {
+        topLeftCircle.setOpacity(0.0)
+        println("Mouse exited!")
     }
     
 //
