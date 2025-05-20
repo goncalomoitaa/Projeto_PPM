@@ -4,7 +4,7 @@ import javafx.fxml.FXMLLoader
 import javafx.scene.{Parent, Scene}
 import javafx.stage.Stage
 
-class HelloWorld extends Application {
+class GUI extends Application {
     override def start(primaryStage: Stage): Unit = {
         primaryStage.setTitle("My Hello World App")
         val fxmlLoader =
@@ -17,6 +17,6 @@ class HelloWorld extends Application {
 }
 object FxApp {
     def main(args: Array[String]): Unit = {
-        Application.launch(classOf[HelloWorld], args: _*)
+        Application.launch(classOf[GUI], args: _*)
     }
 }

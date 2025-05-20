@@ -4,7 +4,9 @@ import TUI_Utils.*
 import scala.annotation.tailrec
 import scala.collection.immutable.:: // {getUserInput, printGameOver, printGameState, printableFlipResult, showMenuPrompt, tossCoin}
 
-object AtariGo extends App{
+import javafx.application.Application
+
+object AtariGo{
 
   type Board = List[List[Stone]]
   type Coord2D = (Int, Int)       //(row, column)
@@ -197,12 +199,8 @@ object AtariGo extends App{
     }
   
     def getCurrentStoneScore(gameState: GameState): Int = {
-//      if( gameState.currentStone == gameState.playerStone ) gameState.playerCap
-//      else gameState.opponentCap
-      getOppositeStone(gameState.currentStone) match {
-      case s if s == gameState.playerStone => gameState.playerCap
-      case _ => gameState.opponentCap
-      }
+        if( gameState.currentStone == gameState.playerStone ) gameState.playerCap
+        else gameState.opponentCap
     }
   
     def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
@@ -250,91 +248,100 @@ object AtariGo extends App{
   def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
     if (playerTurnTimestamp > playerTurnMaxTime) true else false
   }
-  
+
   val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
-  mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()))
-  
+
   @tailrec
   def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
-      
-      case State.NEW_GAME =>
-        val newState = gameState.copy(  state = State.IN_GAME,
-                                        currentStone = Stone.Black,currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start())
-        
-        mainLoop( newState, random )
-      
-      
-      case State.IN_GAME =>
-        print("\u001b[2J")       // Clear screen
-        print("\u001b[H")        // Move cursor to top-left
-        println("current Score: " + getCurrentStoneScore(gameState))
-        val currGameState = checkWinConditions( gameState.maxCap, getCurrentStoneScore(gameState) )
-        println(gameState.currentStone)
-        printGameState( gameState )
-        drawBoard( gameState.board )
-        if( currGameState ) { //game reached a victory condition
-          val newState = terminateGame( gameState )
-          mainLoop( newState, random)
-        }
-        else // is in progress
-        {
-          //println("main game loop, currently ingame.")
-          if( gameState.currentStone == gameState.playerStone ) {
-            val input = getUserInput
-            val coord2D = getInputCoord2D( input )
-            val (newBoard, _) = play( gameState.board, gameState.playerStone, coord2D, getBoardEmptyCoords( gameState.board ) )
-            newBoard match {
-              case Some(boardAfter) =>
-                val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, gameState.playerStone)
-                if (!isPlayerTurnTimeUp(gameState.turnTimer.getSecondsElapsed, gameState.maxTurnTimeSec)){
-                  val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1, board = boardAfterPlay)
-                  println(gameState.turnTimer.getSecondsElapsed)
-                  mainLoop(newState, random)
-                }
-                else {
-                  val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1)
-                  println("\u001b[31mTempo de turno esgotado!\u001b[0m")
-                  println(gameState.turnTimer.getSecondsElapsed)
-                  mainLoop(newState, random)
-                }
-              case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
-                if (input == "Q") {
-                  val newState = quitGame(gameState)
-                  mainLoop(newState, random)
-                }
-                else if (input == "U"){
-                  val newState = undo(gameState)
-                  mainLoop(newState, random)
-                }
-                else if (input == "R") {
-                  val newState = gameState.copy(state = State.MENU)
-                  mainLoop(newState, random)
-                }
-                else {
-                  println("Jogada inválida, tenta outra vez")
-                  mainLoop(gameState, random)
-                }
-            }
-          }
-          else {  // CPU Player turn
-            val (newBoard, r, _) = playRandomly( gameState.board, random, getOppositeStone( gameState.playerStone ), getBoardEmptyCoords( gameState.board ), funcRandMovePlay )
-            newBoard match {
-              case boardAfter =>
-                val (boardAfterPlay, capturesAmount) = captureGroupStones( boardAfter, getOppositeStone( gameState.playerStone ) )
-                val newState = gameState.copy(opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
-                mainLoop( newState, r )
-              case Nil =>
-                mainLoop( gameState, r )
-            }
+
+    case State.NEW_GAME =>
+      val newState = gameState.copy(state = State.IN_GAME,
+        currentStone = Stone.Black, currentTurn = 1, playerCap = 0, opponentCap = 0, board = initializeBoard(gameState.gameSize), turnTimer = Timer.start())
+
+      mainLoop(newState, random)
+
+
+    case State.IN_GAME =>
+      print("\u001b[2J") // Clear screen
+      print("\u001b[H") // Move cursor to top-left
+      println("current Score: " + getCurrentStoneScore(gameState))
+      val currGameState = checkWinConditions(gameState.maxCap, getCurrentStoneScore(gameState))
+      println(gameState.currentStone)
+      printGameState(gameState)
+      drawBoard(gameState.board)
+      if (currGameState) { //game reached a victory condition
+        val newState = terminateGame(gameState)
+        mainLoop(newState, random)
+      }
+      else // is in progress
+      {
+        //println("main game loop, currently ingame.")
+        if (gameState.currentStone == gameState.playerStone) {
+          val input = getUserInput
+          val coord2D = getInputCoord2D(input)
+          val (newBoard, _) = play(gameState.board, gameState.playerStone, coord2D, getBoardEmptyCoords(gameState.board))
+          newBoard match {
+            case Some(boardAfter) =>
+              val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, gameState.playerStone)
+              if (!isPlayerTurnTimeUp(gameState.turnTimer.getSecondsElapsed, gameState.maxTurnTimeSec)) {
+                val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1, board = boardAfterPlay)
+                println(gameState.turnTimer.getSecondsElapsed)
+                mainLoop(newState, random)
+              }
+              else {
+                val newState = gameState.copy(oldState = gameState, playerCap = gameState.playerCap + capturesAmount, currentStone = getOppositeStone(gameState.playerStone), currentTurn = gameState.currentTurn + 1)
+                println("\u001b[31mTempo de turno esgotado!\u001b[0m")
+                println(gameState.turnTimer.getSecondsElapsed)
+                mainLoop(newState, random)
+              }
+            case None => //  It was not a valid coord, check if it was a Quit attempt or just an invalid play
+              if (input == "Q") {
+                val newState = quitGame(gameState)
+                mainLoop(newState, random)
+              }
+              else if (input == "U") {
+                val newState = undo(gameState)
+                mainLoop(newState, random)
+              }
+              else if (input == "R") {
+                val newState = gameState.copy(state = State.MENU)
+                mainLoop(newState, random)
+              }
+              else {
+                println("Jogada inválida, tenta outra vez")
+                mainLoop(gameState, random)
+              }
           }
         }
-      
-      case menu_id if menu_id >= State.MENU && menu_id < State.NEW_GAME => //  Menu IDs Range
-        showMenuPrompt( gameState )
-        val userInput = getUserInput
-        val newState = handleMenuInput( gameState, userInput )
-        mainLoop( newState, random )
-      
-      case _ => ()  //  Any other state, shuts down game (i.e. State.NONE)
+        else { // CPU Player turn
+          val (newBoard, r, _) = playRandomly(gameState.board, random, getOppositeStone(gameState.playerStone), getBoardEmptyCoords(gameState.board), funcRandMovePlay)
+          newBoard match {
+            case boardAfter =>
+              val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, getOppositeStone(gameState.playerStone))
+              val newState = gameState.copy(opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
+              mainLoop(newState, r)
+            case Nil =>
+              mainLoop(gameState, r)
+          }
+        }
+      }
+
+    case menu_id if menu_id >= State.MENU && menu_id < State.NEW_GAME => //  Menu IDs Range
+      showMenuPrompt(gameState)
+      val userInput = getUserInput
+      val newState = handleMenuInput(gameState, userInput)
+      mainLoop(newState, random)
+
+    case _ => () //  Any other state, shuts down game (i.e. State.NONE)
+  }
+
+  def main(args: Array[String]): Unit = {
+    if (args.length == 1 && args(0) == "-gui") {
+      println("GUI mode enabled.")
+      Application.launch(classOf[GUI], args: _*)
+    } else {
+      println("TUI mode enabled.")
+      mainLoop(GameState(State.MENU), MyRandom(System.currentTimeMillis()))
     }
+  }
 }
