@@ -1,14 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="Menu"
-            prefHeight="400.0" prefWidth="600.0">
+<AnchorPane prefHeight="401.0" prefWidth="397.0" xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Menu">
+
+    <!-- Max Captures -->
+    <Label layoutX="95.0" layoutY="160.0" prefHeight="17.0" prefWidth="132.0" text="Limite de Capturas:">
+      <font>
+         <Font size="14.0" />
+      </font></Label>
+    <TextField fx:id="maxCapturesField" layoutX="238.0" layoutY="156.0" prefHeight="25.0" prefWidth="64.0" promptText="e.g. 5" text="1" />
+
+    <!-- Max Turn Time -->
+    <Label layoutX="95.0" layoutY="123.0" text="Tempo de turno:">
+      <font>
+         <Font size="14.0" />
+      </font></Label>
+    <TextField fx:id="turnTimeField" layoutX="238.0" layoutY="119.0" prefHeight="25.0" prefWidth="64.0" promptText="e.g. 30" text="30" />
+
+    <!-- Team Selection -->
+    <Label layoutX="109.0" layoutY="201.0" text="Escolha a sua cor das pedras:">
+      <font>
+         <Font size="14.0" />
+      </font></Label>
+
+    <RadioButton fx:id="blackRadio" layoutX="215.0" layoutY="233.0" selected="true" text="Pretas">
+      <toggleGroup>
+         <ToggleGroup fx:id="teamGroup" />
+      </toggleGroup></RadioButton>
+    <RadioButton fx:id="whiteRadio" layoutX="97.0" layoutY="233.0" text="Brancas" toggleGroup="$teamGroup" />
+
+    <!-- Start Button -->
+    <Button fx:id="startButton" layoutX="161.0" layoutY="273.0" onAction="#onStartGame" text="Iniciar o jogo" />
+   <Label layoutX="129.0" layoutY="50.0" text="Atari Go">
+      <font>
+         <Font name="Arial Italic" size="38.0" />
+      </font>
+   </Label>
+   <Label alignment="BOTTOM_LEFT" layoutX="14.0" layoutY="334.0" prefHeight="53.0" prefWidth="132.0" text="Gonçalo Lopes - 113026&#10;Gonçalo Moita - 123283&#10;Tiago Alves - 106090" />
+   <Label alignment="BOTTOM_CENTER" layoutX="259.0" layoutY="370.0" prefHeight="17.0" prefWidth="132.0" text="PPM, LEI-PL 2024/2025" />
 
 </AnchorPane>
