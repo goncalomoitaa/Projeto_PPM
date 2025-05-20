@@ -1,3 +1,4 @@
+import AtariGo.Stone
 import javafx.fxml.{ FXML, Initializable }
 import javafx.scene.control.{ Button, Label, RadioButton, TextField, ToggleGroup }
 import javafx.scene.shape.{ Circle, StrokeType }
@@ -9,6 +10,8 @@ import javafx.scene.layout.GridPane
 
 import java.net.URL
 import java.util.ResourceBundle
+import AtariGo.Stone.Stone
+import TUI_Utils.{ State, printGameState }
 
 class Menu extends Initializable {
     @FXML private var boardGrid : GridPane = _
@@ -24,11 +27,35 @@ class Menu extends Initializable {
     
     @FXML
     override def initialize(url: URL, resourceBundle: ResourceBundle): Unit = {
-      
+        
+        // Stone Color RadioButton selection listener
+        teamGroup.selectedToggleProperty().addListener { (_, _, newToggle) =>
+            if( newToggle != null ) {
+                val selectedRadio = newToggle.asInstanceOf[ RadioButton ]
+                //println( s"Selected team: ${selectedRadio.getId}" )
+            } else {
+                println( "No team selected" )
+            }
+        }
     }
     
     @FXML
-    def onStartGame(): Unit = {
+    def onStartGame(): GameState = {
         println("Button On Action triggered: game started!")
+        
+        val selectedColor = getSelectedStoneColor()
+        GameState(State.NEW_GAME, )
+    }
+    
+    def getSelectedStoneColor(): Stone = {
+        val selectedToggle = teamGroup.getSelectedToggle
+        if( selectedToggle != null ) {
+            val selectedRadio = selectedToggle.asInstanceOf[ RadioButton ]
+            if( selectedRadio == blackRadio ) Stone.Black else Stone.White
+        } else Stone.Black  // "No radio button selected", default to Black Stone
+    }
+    
+    @FXML def onTurnTimeChange() = Unit{
+    
     }
 }

@@ -11,14 +11,14 @@
       <font>
          <Font size="14.0" />
       </font></Label>
-    <TextField fx:id="maxCapturesField" layoutX="238.0" layoutY="156.0" prefHeight="25.0" prefWidth="64.0" promptText="e.g. 5" text="1" />
+    <TextField fx:id="maxCapturesField" layoutX="238.0" layoutY="156.0" prefHeight="25.0" prefWidth="41.0" promptText="e.g. 5" text="1" />
 
     <!-- Max Turn Time -->
     <Label layoutX="95.0" layoutY="123.0" text="Tempo de turno:">
       <font>
          <Font size="14.0" />
       </font></Label>
-    <TextField fx:id="turnTimeField" layoutX="238.0" layoutY="119.0" prefHeight="25.0" prefWidth="64.0" promptText="e.g. 30" text="30" />
+    <TextField fx:id="turnTimeField" layoutX="238.0" layoutY="119.0" prefHeight="25.0" prefWidth="41.0" promptText="e.g. 30" text="30" />
 
     <!-- Team Selection -->
     <Label layoutX="109.0" layoutY="201.0" text="Escolha a sua cor das pedras:">
@@ -26,11 +26,11 @@
          <Font size="14.0" />
       </font></Label>
 
-    <RadioButton fx:id="blackRadio" layoutX="215.0" layoutY="233.0" selected="true" text="Pretas">
+    <RadioButton fx:id="blackRadio" contentDisplay="RIGHT" layoutX="127.0" layoutY="233.0" selected="true" text="Pretas">
       <toggleGroup>
          <ToggleGroup fx:id="teamGroup" />
       </toggleGroup></RadioButton>
-    <RadioButton fx:id="whiteRadio" layoutX="97.0" layoutY="233.0" text="Brancas" toggleGroup="$teamGroup" />
+    <RadioButton fx:id="whiteRadio" layoutX="207.0" layoutY="233.0" text="Brancas" toggleGroup="$teamGroup" />
 
     <!-- Start Button -->
     <Button fx:id="startButton" layoutX="161.0" layoutY="273.0" onAction="#onStartGame" text="Iniciar o jogo" />
@@ -39,7 +39,8 @@
          <Font name="Arial Italic" size="38.0" />
       </font>
    </Label>
-   <Label alignment="BOTTOM_LEFT" layoutX="14.0" layoutY="334.0" prefHeight="53.0" prefWidth="132.0" text="Gonçalo Lopes - 113026&#10;Gonçalo Moita - 123283&#10;Tiago Alves - 106090" />
-   <Label alignment="BOTTOM_CENTER" layoutX="259.0" layoutY="370.0" prefHeight="17.0" prefWidth="132.0" text="PPM, LEI-PL 2024/2025" />
+   <Label alignment="BOTTOM_LEFT" layoutX="14.0" layoutY="333.0" prefHeight="54.0" prefWidth="140.0" text="Gonçalo Lopes - 113026&#10;Gonçalo Moita - 123283&#10;Tiago Alves - 106090" />
+   <Label alignment="BOTTOM_CENTER" layoutX="259.0" layoutY="367.0" prefHeight="20.0" prefWidth="132.0" text="PPM, LEI-PL 2024/2025" />
+   <Label layoutX="14.0" layoutY="316.0" prefHeight="17.0" prefWidth="80.0" text="GrupoLM9" />
 
 </AnchorPane>
