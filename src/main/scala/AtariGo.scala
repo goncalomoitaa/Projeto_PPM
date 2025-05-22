@@ -182,29 +182,18 @@ object AtariGo{
 
       checkGroup(group)
     }
-
-    def removeStonesFromBoard(board: Board, coords: List[Coord2D]): Board = {
-      def iterateRows(currentboard: Board, coordsToRemove: List[Coord2D], acc_currRow: Int): Board = currentboard match {
-        case Nil => Nil
-        case row :: remainingRows =>
-          val (newRow, remainingCoords) = removeFromRow(row, acc_currRow, coordsToRemove, 0)
-          newRow :: iterateRows(remainingRows, remainingCoords, acc_currRow + 1)
-      }
-
-      def removeFromRow(rowList: List[Stone], currRowId: Int, coordsToRemove: List[Coord2D], acc_currColId: Int): (List[Stone], List[Coord2D]) = rowList match {
-        case Nil => (List(), coordsToRemove)
-        case currStone :: tail =>
-          if (coordsToRemove.isEmpty) (currStone :: tail, coordsToRemove)
-          else if (coordsToRemove.head == (currRowId, acc_currColId))
-            (Stone.Empty :: removeFromRow(tail, currRowId, coordsToRemove.tail, acc_currColId + 1)._1, coordsToRemove.tail)
-          else
-            (currStone :: removeFromRow(tail, currRowId, coordsToRemove, acc_currColId + 1)._1, coordsToRemove)
-      }
-
-      iterateRows(board, coords, 0)
-    }
   
-    def getCurrentStoneScore(gameState: GameState): Int = {
+  def removeStonesFromBoard(board: Board, coords: List[Coord2D]): Board ={
+    val coordsSet = coords.toSet
+    board.zipWithIndex.map{ case (row, rowIndex) =>
+      row.zipWithIndex.map{ case (stone, colIndex) =>
+        if (coordsSet.contains((rowIndex, colIndex))) Stone.Empty else stone
+      }
+    }
+  }
+  
+  
+  def getCurrentStoneScore(gameState: GameState): Int = {
         if( gameState.currentStone == gameState.playerStone ) gameState.playerCap
         else gameState.opponentCap
     }
@@ -218,41 +207,32 @@ object AtariGo{
   }
   
   def captureGroupStones(board: Board, player: Stone): (Board, Int) ={
-    val opponentStone = getOppositeStone(player)
-    val boardSize = getBoardSize(board)
-    
-    def groupHasLiberty(group: List[Coord2D]): Boolean ={
-      group.exists(coord =>
-        neighbors(boardSize, coord).exists{
-          case (x, y) => board(x)(y) == Stone.Empty
-        }
-      )
-    }
+    val opponent = getOppositeStone(player)
+    val size = getBoardSize(board)
     
     @tailrec
-    def traverseBoard(row: Int, col: Int, visited: Set[Coord2D], captured: List[Coord2D]): List[Coord2D] ={
-      if (row >= boardSize) captured
-      else if (col >= boardSize) traverseBoard(row + 1, 0, visited, captured)
+    def scanBoard(row: Int, col: Int, visited: Set[Coord2D], captured: Set[Coord2D]): (Set[Coord2D], Set[Coord2D]) ={
+      if (row >= size) (visited, captured)
+      else if (col >= size) scanBoard(row + 1, 0, visited, captured)
       else {
         val coord = (row, col)
         val stone = board(row)(col)
-        if (stone != opponentStone || visited.contains(coord)) {
-          traverseBoard(row, col + 1, visited, captured)
+        if (stone != opponent || visited.contains(coord)) {
+          scanBoard(row, col + 1, visited, captured)
         } else {
           val group = getGroup(board, coord)
           val newVisited = visited ++ group
-          if (!groupHasLiberty(group)) {
-            traverseBoard(row, col + 1, newVisited, captured ++ group)
-          } else {
-            traverseBoard(row, col + 1, newVisited, captured)
-          }
+          if (isGroupSurrounded(board, player, group))
+            scanBoard(row, col + 1, newVisited, captured ++ group)
+          else
+            scanBoard(row, col + 1, newVisited, captured)
         }
       }
     }
     
-    val capturedCoords = traverseBoard(0, 0, Set(), List())
-    val updatedBoard = removeStonesFromBoard(board, capturedCoords)
-    (updatedBoard, capturedCoords.length)
+    val (_, capturedStones) = scanBoard(0, 0, Set.empty, Set.empty)
+    val newBoard = removeStonesFromBoard(board, capturedStones.toList)
+    (newBoard, capturedStones.size)
   }
   
   
