@@ -1,19 +1,17 @@
-import AtariGo.Stone.Stone
 import javafx.fxml.{FXML, Initializable}
-import javafx.scene.control.{Button, Label, TextField}
+import javafx.scene.control.Label
 import javafx.scene.shape.{Circle, StrokeType}
-import javafx.scene.input.{MouseEvent, TouchEvent}
-import javafx.scene.layout.GridPane
 import javafx.scene.paint.Color
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.GridPane
-
-import java.net.URL
 import java.util.ResourceBundle
-import TUI_Utils.*
-import AtariGo.{Board, Coord2D, Stone, Timer, captureGroupStones, checkWinConditions, getOppositeStone, playRandomly, randomMove}
+import java.net.URL
 import javafx.application.Platform
 import javafx.geometry.{HPos, VPos}
+
+import AtariGo.Stone.Stone
+import AtariGo.{Board, Coord2D, Stone, Timer, captureGroupStones, checkWinConditions, getOppositeStone, playRandomly, randomMove}
+import TUI_Utils.*
 
 import scala.annotation.tailrec
 import scala.language.postfixOps
