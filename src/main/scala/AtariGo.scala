@@ -143,7 +143,10 @@ object AtariGo{
             getGroupAux(tail, visited)
           else
             val currStoneNeighbors = neighbors(getBoardSize(board), head)
-            val x = currStoneNeighbors.filter((l, r) => board(l)(r).equals(board(head._1)(head._2)) && !visited.contains(head)) //????
+            val x = currStoneNeighbors.filter { case (l, r) =>
+            board(l)(r) == board(head._1)(head._2) && !visited.contains((l, r))
+          }
+            
             getGroupAux(tail ++ x, head :: visited)
       }
 
@@ -155,18 +158,19 @@ object AtariGo{
       if (oldState != null) oldState
       else gameState
     }
-
-    def isCoordSurrounded(coord: Coord2D, board: Board, player:Stone): Boolean = {
-      if (coord == null) true
-      else {
-        //val list = neighbors(getBoardSize(board), coord)
-        //(list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
-        val currCoordGroup = getGroup(board, coord)
-        if (isGroupSurrounded(board, player, currCoordGroup)) true else false
-      }
+  
+  def isCoordSurrounded(coord: Coord2D, board: Board, player: Stone): Boolean ={
+    if (coord == null) true
+    else {
+      val (row, col) = coord
+      val simulatedBoard = board.updated(row, board(row).updated(col, player))
+      val group = getGroup(simulatedBoard, coord)
+      isGroupSurrounded(simulatedBoard, player, group)
     }
-    
-    def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
+  }
+  
+  
+  def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
       def checkCoord(coord: Coord2D, board: Board, player: Stone): Boolean = {
         val list = neighbors(getBoardSize(board), coord)
         (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) /*&& !board( x._1 )( x._2 ).equals( player )*/ && r)
@@ -205,32 +209,54 @@ object AtariGo{
         else gameState.opponentCap
     }
   
-    def captureGroupStones(board: Board, player: Stone): (Board, Int) = {
-      val opponentStone = getOppositeStone(player)
-
-      def findCapturedStones(currBoard: Board, remainingBoard: Board, opponent: Stone, acc_currRowId: Int = 0): List[Coord2D] = remainingBoard match {
-        case Nil => Nil
-        case currentRow :: remainingRows =>
-          findCapturedStonesInRow(currBoard, currentRow, opponent, acc_currRowId) ::: findCapturedStones(currBoard, remainingRows, opponent, acc_currRowId + 1)
+    def groupHasLiberty(board: Board, group: List[Coord2D]): Boolean = {
+    group.exists(coord =>
+      neighbors(getBoardSize(board), coord).exists {
+        case (x, y) => board(x)(y) == Stone.Empty
       }
-
-      def findCapturedStonesInRow(currBoard: Board, rowList: List[Stone], opponent: Stone, currRowId: Int, acc_currColId: Int = 0): List[Coord2D] = rowList match {
-        case Nil => Nil
-        case head :: tail =>
-          if (head == opponent)
-            if (isGroupSurrounded(currBoard, opponent, getGroup(currBoard, (currRowId, acc_currColId))))
-              (currRowId, acc_currColId) :: findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
-            else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
-          else findCapturedStonesInRow(currBoard, tail, opponent, currRowId, acc_currColId + 1)
-      }
-
-      val capturedOpponentStonesList = findCapturedStones(board, board, opponentStone)
-      //    println("Lista de capturadas: " + capturedOpponentStonesList)
-      val amountCaptured = capturedOpponentStonesList.length
-      (removeStonesFromBoard(board, capturedOpponentStonesList), amountCaptured)
-    }
+    )
+  }
   
-    def checkWinConditions(capLimit: Int, currentStoneScore: Int): Boolean = {
+  def captureGroupStones(board: Board, player: Stone): (Board, Int) ={
+    val opponentStone = getOppositeStone(player)
+    val boardSize = getBoardSize(board)
+    
+    def groupHasLiberty(group: List[Coord2D]): Boolean ={
+      group.exists(coord =>
+        neighbors(boardSize, coord).exists{
+          case (x, y) => board(x)(y) == Stone.Empty
+        }
+      )
+    }
+    
+    @tailrec
+    def traverseBoard(row: Int, col: Int, visited: Set[Coord2D], captured: List[Coord2D]): List[Coord2D] ={
+      if (row >= boardSize) captured
+      else if (col >= boardSize) traverseBoard(row + 1, 0, visited, captured)
+      else {
+        val coord = (row, col)
+        val stone = board(row)(col)
+        if (stone != opponentStone || visited.contains(coord)) {
+          traverseBoard(row, col + 1, visited, captured)
+        } else {
+          val group = getGroup(board, coord)
+          val newVisited = visited ++ group
+          if (!groupHasLiberty(group)) {
+            traverseBoard(row, col + 1, newVisited, captured ++ group)
+          } else {
+            traverseBoard(row, col + 1, newVisited, captured)
+          }
+        }
+      }
+    }
+    
+    val capturedCoords = traverseBoard(0, 0, Set(), List())
+    val updatedBoard = removeStonesFromBoard(board, capturedCoords)
+    (updatedBoard, capturedCoords.length)
+  }
+  
+  
+  def checkWinConditions(capLimit: Int, currentStoneScore: Int): Boolean = {
       // Retorna a cor da pedra que ganhou, None se ainda nao acabou o jogo
       if ( currentStoneScore >= capLimit)
         true
