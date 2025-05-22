@@ -11,7 +11,7 @@ object AtariGo{
   type Board = List[List[Stone]]
   type Coord2D = (Int, Int)       //(row, column)
   
-  val INVALID_COORD = (-1,-1)
+  val INVALID_COORD : Coord2D = (-1,-1)
   
   object Stone extends Enumeration {
     type Stone = Value
@@ -159,15 +159,17 @@ object AtariGo{
     def isCoordSurrounded(coord: Coord2D, board: Board, player:Stone): Boolean = {
       if (coord == null) true
       else {
-        val list = neighbors(getBoardSize(board), coord)
-        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
+        //val list = neighbors(getBoardSize(board), coord)
+        //(list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
+        val currCoordGroup = getGroup(board, coord)
+        if (isGroupSurrounded(board, player, currCoordGroup)) true else false
       }
     }
     
     def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
       def checkCoord(coord: Coord2D, board: Board, player: Stone): Boolean = {
         val list = neighbors(getBoardSize(board), coord)
-        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && r)
+        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
       }
 
       def checkGroup(groupAux: List[Coord2D]): Boolean = {

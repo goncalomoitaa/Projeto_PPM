@@ -15,6 +15,7 @@ import AtariGo.{Board, Coord2D, Stone, Timer, captureGroupStones, checkWinCondit
 import javafx.application.Platform
 import javafx.geometry.{HPos, VPos}
 
+import scala.annotation.tailrec
 import scala.language.postfixOps
 
 class Game(gameState: GameState) extends Initializable{
@@ -66,8 +67,6 @@ class Game(gameState: GameState) extends Initializable{
     
     @FXML
     def onGameBoardClick(event: MouseEvent): Unit = {
-        println("onGameBoardClick")
-        println(s"state ${currentGame.state}, currentStone ${currentGame.currentStone}")
         if(currentGame.state != State.IN_GAME) return
         
         if(currentGame.currentStone != currentGame.playerStone) return
@@ -86,9 +85,7 @@ class Game(gameState: GameState) extends Initializable{
 
         // Safety check for bounds
         if (col < 0 || col >= cols || row < 0 || row >= rows) return
-        
-        playerPlay(col, row)
-        
+            
         // Check if a circle is already in this cell
         val alreadyOccupied = boardGrid.getChildren.stream().anyMatch { node =>
             GridPane.getColumnIndex(node) == col &&
@@ -98,65 +95,87 @@ class Game(gameState: GameState) extends Initializable{
         if (alreadyOccupied) {
             return
         }
+        
+        val validPlay = playerPlay(col, row)
+        if (!validPlay)
+            return
+            
+        println(s"Processed valid Play $row $col, state ${currentGame.state}, turn ${currentGame.currentTurn}")
     }
 
-    private def playerPlay(col: Int, row: Int): Unit = {
+    private def playerPlay(col: Int, row: Int): Boolean = {
         val board = currentGame.board
         val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
         val (newBoardRes, newLstOpenCoords) = AtariGo.play(board, currentGame.playerStone, (row, col), lstOpenCoords)
         newBoardRes match {
             case Some(boardAfter) =>
-                val newBoard = getBoard(newBoardRes, board)
-                updateGameBoard(newBoard)
-                val circle = createCircle(playerColor)
+                //val newBoard = getBoard(newBoardRes, board)
+                //updateGameBoard(boardAfter)
+                //val circle = createCircle(playerColor)
                 drawPosition(playerColor, col, row)
                 
-                val (newBoardAfterPlay, won) = removeCaptures(currentGame.currentStone)
+                val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(boardAfter, currentGame.currentStone)
                 if (won) {
                     println("You won!")
                     currentGame = currentGame.copy(state = State.NONE)
                     Platform.exit()
-                    return
+                    return true
                 }
-                updateGameState(newBoardAfterPlay, playerColor)
+                updateGameState(newBoardAfterPlay, capturesAmount)
                 initNextTurn()
-            
-            case None => ()
+                true
+            case None => false
         }
     }
 
+    @tailrec
     private def botPlay(): Unit = {
-        val board = currentGame.board
-        val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
-        val (newBoard, newRandom, newLstOpenCoords) = playRandomly(board, random, AtariGo.getOppositeStone(currentGame.playerStone), lstOpenCoords, funcRand)
-        newBoard match {
-            case boardAfter =>
-                updateGameBoard(newBoard)
-                random = newRandom
-                val playedPos = lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
-                val circle = createCircle(botColor)
+        val oldBoard = currentGame.board
+        val lstOpenCoords = AtariGo.getBoardEmptyCoords(oldBoard)
+        val (newBoard, newRandom, newLstOpenCoords) = playRandomly(oldBoard, random, AtariGo.getOppositeStone(currentGame.playerStone), lstOpenCoords, funcRand)
+        // playRandomly already returns a resolved "Some" object
+        // it returns either a new board or the old one. Must check which one
+        
+        if(oldBoard != newBoard)   // It is a new one
+        {
+            //updateGameBoard(newBoard)
+            random = newRandom
+            
+            val playedPosList = lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord))
+            if (playedPosList.isEmpty)
+                println("WOULD CRASH HERE")
+            else{
+                val playedPos = playedPosList.head //lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
                 drawPosition(botColor, playedPos._2, playedPos._1)
-                
-                val (newBoardAfterPlay, won) = removeCaptures(currentGame.currentStone)
-                if (won) {
-                    println("You Lost!")
-                    currentGame = currentGame.copy(state = State.NONE)
-                    Platform.exit()
-                    return
-                }
-                updateGameState(newBoardAfterPlay, botColor)
-                initNextTurn()
-            case Nil =>
-                println("Something went wrong")
+            }
+            
+            //val circle = createCircle(botColor)
+            
+            val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(newBoard, currentGame.currentStone)
+            if (won) {
+                println("You Lost!")
+                currentGame = currentGame.copy(state = State.NONE)
+                Platform.exit()
+                return
+            }
+            updateGameState(newBoardAfterPlay, capturesAmount)
+            initNextTurn()
+        }
+        else {
+            println("Something went wrong, must try again")
+            AtariGo.drawBoard(oldBoard)
+            println(s"Old list: $lstOpenCoords")
+            println(s"new list: $newLstOpenCoords")
+            random = newRandom
+            botPlay()
         }
     }
 
-    private def removeCaptures(stone: Stone): (Board, Boolean) = {
-        println(s"removeCaptures($stone)")
-        val board = currentGame.board
+    private def removeCaptures(board:Board, stone: Stone): (Board, Int, Boolean) = {
+        //println(s"removeCaptures($stone)")
         val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
         val (newBoardAfterPlay, capturesAmount, won) = checkForCapturesAndWins(board, stone)
-        updateCaptures(stone, capturesAmount)
+        //updateCaptures(stone, capturesAmount)
         if (capturesAmount > 0) {
             val lstCoordsToRemoveStonesFrom = AtariGo.getBoardEmptyCoords(newBoardAfterPlay).filter(c => !lstOpenCoords.contains(c))
             for (coord <- lstCoordsToRemoveStonesFrom) {
@@ -164,7 +183,7 @@ class Game(gameState: GameState) extends Initializable{
                 removeCircleAt(boardGrid, coord._2, coord._1)
             }
         }
-        (newBoardAfterPlay, won)
+        (newBoardAfterPlay, capturesAmount, won)
     }
 
     private def getBoard(board: Option[Board], oldBoard: Board): Board = {
@@ -195,21 +214,24 @@ class Game(gameState: GameState) extends Initializable{
         currentGame = newGameState
     }
 
-    private def updateGameState(boardRes: Board, currentPlayer: Color): Unit = {
-        if (currentPlayer == playerColor){
+    private def updateGameState(boardRes: Board, capturesAmount:Int): Unit = {
+        if (currentGame.currentStone == currentGame.playerStone){
             val newGameState = currentGame.copy(
                 board = boardRes,
                 currentStone = getOppositeStone(currentGame.playerStone),
+                playerCap = currentGame.playerCap + capturesAmount,
                 oldState = currentGame
             )
             currentGame = newGameState
         } else {
             val newGameState = currentGame.copy(
                 board = boardRes,
-                currentStone = currentGame.playerStone
+                currentStone = currentGame.playerStone,
+                opponentCap = currentGame.opponentCap + capturesAmount,
             )
             currentGame = newGameState
         }
+        AtariGo.drawBoard(currentGame.board)
     }
 
     private def updateCaptures(currentPlayer: Stone, capturesAmount: Int): Unit = {
@@ -237,13 +259,15 @@ class Game(gameState: GameState) extends Initializable{
         val (boardAfterPlay, capturesAmount) = captureGroupStones(board, currentStone)
 
         if( currentGame.playerStone == currentStone ) {
-            currentGame = currentGame.copy(board = boardAfterPlay, playerCap = currentGame.playerCap + capturesAmount)
-            val winner = checkWinConditions(currentGame.maxCap, currentGame.playerCap)
+            //currentGame = currentGame.copy(board = boardAfterPlay, playerCap = currentGame.playerCap + capturesAmount)
+            val winner = checkWinConditions(currentGame.maxCap, currentGame.playerCap + capturesAmount)
             (boardAfterPlay, capturesAmount, winner)
 
         } else {
-            currentGame = currentGame.copy(board = boardAfterPlay, opponentCap = currentGame.opponentCap + capturesAmount)
-            val winner = checkWinConditions(currentGame.maxCap, currentGame.opponentCap)
+            //currentGame = currentGame.copy(board = boardAfterPlay, opponentCap = currentGame.opponentCap + capturesAmount)
+            //val winner = checkWinConditions(currentGame.maxCap, currentGame.opponentCap)
+            val winner = checkWinConditions(currentGame.maxCap, currentGame.opponentCap + capturesAmount)
+            (boardAfterPlay, capturesAmount, winner)
             (boardAfterPlay, capturesAmount, winner)
         }
 
