@@ -19,17 +19,16 @@ import scala.annotation.tailrec
 import scala.language.postfixOps
 
 class Game(gameState: GameState) extends Initializable{
-    @FXML
-    private var boardGrid : GridPane = _
-    @FXML
-    private var playerColor: Color = _
-    @FXML
-    private var botColor: Color = _
-
+    @FXML private var boardGrid : GridPane = _
+    @FXML private var playerColor: Color = _
+    @FXML private var botColor: Color = _
+    @FXML private var playerScoreLabel: Label = _
+    @FXML private var botScoreLabel: Label = _
+    @FXML private var capLimitLabel: Label = _
+    @FXML private var timerLabel: Label = _
+    
     private var random: MyRandom = _
-
     private val funcRand = randomMove(_: List[Coord2D], _: MyRandom)
-
     private var currentGame: GameState = gameState
 
     @FXML
@@ -41,6 +40,10 @@ class Game(gameState: GameState) extends Initializable{
         currentGame = currentGame.copy(state = State.IN_GAME,
                                         turnTimer = Timer.start(),
                                         board = AtariGo.initializeBoard(currentGame.gameSize))
+        
+        playerScoreLabel.setText(s"PLAYER -> Score: ${currentGame.playerCap}")
+        botScoreLabel.setText(s"BOT -> Score: ${currentGame.opponentCap}")
+        capLimitLabel.setText(s"CAP LIMIT: ${currentGame.maxCap}")
         
         initNextTurn()
     }
@@ -223,6 +226,7 @@ class Game(gameState: GameState) extends Initializable{
                 oldState = currentGame
             )
             currentGame = newGameState
+            updateCapturesLabel(currentGame.playerStone)
         } else {
             val newGameState = currentGame.copy(
                 board = boardRes,
@@ -230,19 +234,21 @@ class Game(gameState: GameState) extends Initializable{
                 opponentCap = currentGame.opponentCap + capturesAmount,
             )
             currentGame = newGameState
+            updateCapturesLabel(getOppositeStone(currentGame.playerStone))
         }
         AtariGo.drawBoard(currentGame.board)
     }
 
-    private def updateCaptures(currentPlayer: Stone, capturesAmount: Int): Unit = {
+    private def updateCapturesLabel(currentPlayer: Stone): Unit = {
         if (currentGame.playerStone == currentPlayer) {
-            println(s"updatingCaptures: PLAYER -> Score: ${currentGame.playerCap}")
-            
+            //println(s"updatingCaptures: PLAYER -> Score: ${currentGame.playerCap}")
+            playerScoreLabel.setText(s"PLAYER -> Score: ${currentGame.playerCap}")
             //val addCaptures = capturesAmount + currentGame.playerCap
             //println(s"addCaptures = capturesAmount + currentGame.playerCap => $addCaptures=$capturesAmount+${currentGame.playerCap}")
             //currentGame = currentGame.copy(playerCap = addCaptures)
         } else {
-            println(s"updatingCaptures: BOT -> Score: ${currentGame.opponentCap}")
+            //println(s"updatingCaptures: BOT -> Score: ${currentGame.opponentCap}")
+            botScoreLabel.setText(s"BOT -> Score: ${currentGame.opponentCap}")
             //val addCaptures = currentGame.opponentCap + capturesAmount
             //println(s"addCaptures = capturesAmount + currentGame.opponentCap => $addCaptures=$capturesAmount+${currentGame.opponentCap}")
             //currentGame = currentGame.copy(opponentCap = addCaptures)

@@ -169,7 +169,7 @@ object AtariGo{
     def isGroupSurrounded(board: Board, player:Stone, group: List[Coord2D]): Boolean = {
       def checkCoord(coord: Coord2D, board: Board, player: Stone): Boolean = {
         val list = neighbors(getBoardSize(board), coord)
-        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) && !board( x._1 )( x._2 ).equals( player ) && r)
+        (list foldRight true)((x, r) => !board(x._1)(x._2).equals(Stone.Empty) /*&& !board( x._1 )( x._2 ).equals( player )*/ && r)
       }
 
       def checkGroup(groupAux: List[Coord2D]): Boolean = {
