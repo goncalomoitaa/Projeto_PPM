@@ -47,7 +47,7 @@ class Menu extends Initializable {
                 val value = newValue.toInt
                 if( value < MIN_CAPS || value > MAX_CAPS ) {
                     println( s"$value is out of range! Resetting." )
-                    Platform.runLater( () => maxCapturesField.setText( s"${DEFAULT_CAPS}" ) ) // Safe reset
+                    Platform.runLater( () => maxCapturesField.setText( s"$DEFAULT_CAPS" ) ) // Safe reset
                 }
             }
         }
@@ -59,7 +59,7 @@ class Menu extends Initializable {
                 val value = newValue.toInt
                 if( value < MIN_TURNTIME || value > MAX_TURNTIME ) {
                     println( s"$value is out of range! Resetting." )
-                    Platform.runLater( () => turnTimeField.setText( s"${DEFAULT_TURNTIME}" ) ) // Safe reset
+                    Platform.runLater( () => turnTimeField.setText( s"$DEFAULT_TURNTIME" ) ) // Safe reset
                 }
             }
         }
@@ -81,7 +81,7 @@ class Menu extends Initializable {
 
         val maxCaptures = maxCapturesField.getCharacters.toString.toInt
         val turnTime = turnTimeField.getCharacters.toString.toInt
-        val gameState = GameState(State.IN_GAME, maxTurnTimeSec = turnTime, maxCap = maxCaptures, playerStone = getSelectedStoneColor)
+        val gameState = GameState(State.NEW_GAME, maxTurnTimeSec = turnTime, maxCap = maxCaptures, playerStone = getSelectedStoneColor)
         val fxmlLoader = new FXMLLoader(getClass.getResource("Game.fxml"))
         val gameController = new Game(gameState)
         fxmlLoader.setController(gameController)

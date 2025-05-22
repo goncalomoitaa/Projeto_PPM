@@ -15,6 +15,8 @@ import AtariGo.{Board, Coord2D, Stone, Timer, captureGroupStones, checkWinCondit
 import javafx.application.Platform
 import javafx.geometry.{HPos, VPos}
 
+import scala.language.postfixOps
+
 class Game(gameState: GameState) extends Initializable{
     @FXML
     private var boardGrid : GridPane = _
@@ -27,22 +29,49 @@ class Game(gameState: GameState) extends Initializable{
 
     private val funcRand = randomMove(_: List[Coord2D], _: MyRandom)
 
-    private var currentGame: GameState = _
+    private var currentGame: GameState = gameState
 
     @FXML
     override def initialize(url: URL, resourceBundle: ResourceBundle): Unit = {
-        random = new MyRandom(System.currentTimeMillis())
-        playerColor = if (gameState.playerStone == Stone.Black) Color.BLACK else Color.WHITE
-        botColor = if (gameState.playerStone == Stone.White) Color.BLACK else Color.WHITE
-        currentGame = gameState.copy(state = State.IN_GAME, board = AtariGo.initializeBoard(gameState.gameSize))
-        if (botColor == Color.BLACK) {
+        random = MyRandom(System.currentTimeMillis())
+        playerColor = if (currentGame.playerStone == Stone.Black) Color.BLACK else Color.WHITE
+        botColor = if (currentGame.playerStone == Stone.White) Color.BLACK else Color.WHITE
+        
+        currentGame = currentGame.copy(state = State.IN_GAME,
+                                        turnTimer = Timer.start(),
+                                        board = AtariGo.initializeBoard(currentGame.gameSize))
+        
+        initNextTurn()
+    }
+    
+    def initNextTurn() : Unit = {
+        val nextTurn = currentGame.currentTurn + 1
+        println(s"current turn: $nextTurn")
+        if (nextTurn % 2 == 1)   // Odd number, black stone plays
+        {
+            currentGame = currentGame.copy(turnTimer = Timer.start(),currentTurn = nextTurn, currentStone = Stone.Black)
+        }
+        else
+        {
+            currentGame = currentGame.copy(turnTimer = Timer.start(),currentTurn = nextTurn, currentStone = Stone.White)
+        }
+        
+        if( currentGame.currentStone != currentGame.playerStone ){
+            // add a delay ?
             botPlay()
         }
+        
+        // is player turn, wait for input
     }
     
     @FXML
     def onGameBoardClick(event: MouseEvent): Unit = {
+        println("onGameBoardClick")
+        println(s"state ${currentGame.state}, currentStone ${currentGame.currentStone}")
         if(currentGame.state != State.IN_GAME) return
+        
+        if(currentGame.currentStone != currentGame.playerStone) return
+        
         val mouseX = event.getX
         val mouseY = event.getY
 
@@ -57,7 +86,9 @@ class Game(gameState: GameState) extends Initializable{
 
         // Safety check for bounds
         if (col < 0 || col >= cols || row < 0 || row >= rows) return
-
+        
+        playerPlay(col, row)
+        
         // Check if a circle is already in this cell
         val alreadyOccupied = boardGrid.getChildren.stream().anyMatch { node =>
             GridPane.getColumnIndex(node) == col &&
@@ -67,48 +98,61 @@ class Game(gameState: GameState) extends Initializable{
         if (alreadyOccupied) {
             return
         }
-        playerPlay(col, row)
-        botPlay()
     }
 
     private def playerPlay(col: Int, row: Int): Unit = {
         val board = currentGame.board
         val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
         val (newBoardRes, newLstOpenCoords) = AtariGo.play(board, currentGame.playerStone, (row, col), lstOpenCoords)
-        val newBoard = getBoard(newBoardRes, board)
-        updateGameBoard(newBoard)
-        val circle = createCircle(playerColor)
-        drawPosition(playerColor, col, row)
-
-        val (newBoardAfterPlay, won) = removeCaptures(getCurrentPlayer(playerColor))
-        if (won) {
-            println("You won!")
-            currentGame = currentGame.copy(state = State.NONE)
-            Platform.exit()
+        newBoardRes match {
+            case Some(boardAfter) =>
+                val newBoard = getBoard(newBoardRes, board)
+                updateGameBoard(newBoard)
+                val circle = createCircle(playerColor)
+                drawPosition(playerColor, col, row)
+                
+                val (newBoardAfterPlay, won) = removeCaptures(currentGame.currentStone)
+                if (won) {
+                    println("You won!")
+                    currentGame = currentGame.copy(state = State.NONE)
+                    Platform.exit()
+                    return
+                }
+                updateGameState(newBoardAfterPlay, playerColor)
+                initNextTurn()
+            
+            case None => ()
         }
-        updateGameState(newBoardAfterPlay, playerColor)
     }
 
     private def botPlay(): Unit = {
         val board = currentGame.board
         val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
         val (newBoard, newRandom, newLstOpenCoords) = playRandomly(board, random, AtariGo.getOppositeStone(currentGame.playerStone), lstOpenCoords, funcRand)
-        updateGameBoard(newBoard)
-        random = newRandom
-        val playedPos = lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
-        val circle = createCircle(botColor)
-        drawPosition(botColor, playedPos._2, playedPos._1)
-
-        val (newBoardAfterPlay, won) = removeCaptures(getCurrentPlayer(botColor))
-        if (won) {
-            println("You Lost!")
-            currentGame = currentGame.copy(state = State.NONE)
-            Platform.exit()
+        newBoard match {
+            case boardAfter =>
+                updateGameBoard(newBoard)
+                random = newRandom
+                val playedPos = lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
+                val circle = createCircle(botColor)
+                drawPosition(botColor, playedPos._2, playedPos._1)
+                
+                val (newBoardAfterPlay, won) = removeCaptures(currentGame.currentStone)
+                if (won) {
+                    println("You Lost!")
+                    currentGame = currentGame.copy(state = State.NONE)
+                    Platform.exit()
+                    return
+                }
+                updateGameState(newBoardAfterPlay, botColor)
+                initNextTurn()
+            case Nil =>
+                println("Something went wrong")
         }
-        updateGameState(newBoardAfterPlay, botColor)
     }
 
     private def removeCaptures(stone: Stone): (Board, Boolean) = {
+        println(s"removeCaptures($stone)")
         val board = currentGame.board
         val lstOpenCoords = AtariGo.getBoardEmptyCoords(board)
         val (newBoardAfterPlay, capturesAmount, won) = checkForCapturesAndWins(board, stone)
@@ -116,7 +160,7 @@ class Game(gameState: GameState) extends Initializable{
         if (capturesAmount > 0) {
             val lstCoordsToRemoveStonesFrom = AtariGo.getBoardEmptyCoords(newBoardAfterPlay).filter(c => !lstOpenCoords.contains(c))
             for (coord <- lstCoordsToRemoveStonesFrom) {
-                println(s"Removing stone at ${coord._2}, ${coord._1} ")
+                println(s"Removing stone at row ${coord._1},col ${coord._2}")
                 removeCircleAt(boardGrid, coord._2, coord._1)
             }
         }
@@ -185,7 +229,7 @@ class Game(gameState: GameState) extends Initializable{
     }
 
     private def checkForCapturesAndWins(board:Board, currentStone:Stone): (Board, Int, Boolean) = {
-        val (boardAfterPlay, capturesAmount) = captureGroupStones(board, getOppositeStone(currentStone))
+        val (boardAfterPlay, capturesAmount) = captureGroupStones(board, currentStone)
 
         if( currentGame.playerStone == currentStone ) {
             currentGame = currentGame.copy(board = boardAfterPlay, playerCap = currentGame.playerCap + capturesAmount)
