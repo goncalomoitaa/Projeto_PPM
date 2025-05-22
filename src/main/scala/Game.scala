@@ -214,11 +214,16 @@ class Game(gameState: GameState) extends Initializable{
 
     private def updateCaptures(currentPlayer: Stone, capturesAmount: Int): Unit = {
         if (currentGame.playerStone == currentPlayer) {
-            val addCaptures = capturesAmount + currentGame.playerCap
-            currentGame = currentGame.copy(playerCap = addCaptures)
+            println(s"updatingCaptures: PLAYER -> Score: ${currentGame.playerCap}")
+            
+            //val addCaptures = capturesAmount + currentGame.playerCap
+            //println(s"addCaptures = capturesAmount + currentGame.playerCap => $addCaptures=$capturesAmount+${currentGame.playerCap}")
+            //currentGame = currentGame.copy(playerCap = addCaptures)
         } else {
-            val addCaptures = currentGame.opponentCap + capturesAmount
-            currentGame = currentGame.copy(opponentCap = addCaptures)
+            println(s"updatingCaptures: BOT -> Score: ${currentGame.opponentCap}")
+            //val addCaptures = currentGame.opponentCap + capturesAmount
+            //println(s"addCaptures = capturesAmount + currentGame.opponentCap => $addCaptures=$capturesAmount+${currentGame.opponentCap}")
+            //currentGame = currentGame.copy(opponentCap = addCaptures)
         }
     }
 
