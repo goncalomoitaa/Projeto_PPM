@@ -1,13 +1,20 @@
 import javafx.fxml.{FXML, Initializable}
+
 import javafx.scene.control.Label
 import javafx.scene.shape.{Circle, StrokeType}
 import javafx.scene.paint.Color
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.GridPane
+
+import javafx.geometry.{HPos, VPos}
+
+//  These are used for the 'delayCpuMove' function
+import javafx.util.Duration
+import javafx.animation.PauseTransition
+import javafx.application.Platform
+
 import java.util.ResourceBundle
 import java.net.URL
-import javafx.application.Platform
-import javafx.geometry.{HPos, VPos}
 
 import AtariGo.Stone.Stone
 import AtariGo.{Board, Coord2D, Stone, Timer, captureGroupStones, checkWinConditions, getOppositeStone, playRandomly, randomMove}
@@ -35,9 +42,16 @@ class Game(gameState: GameState) extends Initializable{
         playerColor = if (currentGame.playerStone == Stone.Black) Color.BLACK else Color.WHITE
         botColor = if (currentGame.playerStone == Stone.White) Color.BLACK else Color.WHITE
         
-        currentGame = currentGame.copy(state = State.IN_GAME,
-                                        turnTimer = Timer.start(),
-                                        board = AtariGo.initializeBoard(currentGame.gameSize))
+        initiateBoard()
+    }
+    
+    def initiateBoard() : Unit ={
+        
+        currentGame = currentGame.copy(
+            state = State.IN_GAME,
+            currentTurn = 1,
+            board = AtariGo.initializeBoard(currentGame.gameSize)
+        )
         
         playerScoreLabel.setText(s"PLAYER -> Score: ${currentGame.playerCap}")
         botScoreLabel.setText(s"BOT -> Score: ${currentGame.opponentCap}")
@@ -47,22 +61,25 @@ class Game(gameState: GameState) extends Initializable{
     }
     
     def initNextTurn() : Unit = {
-        val nextTurn = currentGame.currentTurn + 1
-        println(s"current turn: $nextTurn")
-        if (nextTurn % 2 == 1)   // Odd number, black stone plays
+        //val nextTurn = currentGame.currentTurn + 1
+        println(s"current turn: ${currentGame.currentTurn}")
+        if (currentGame.currentTurn % 2 == 1)   // Odd number, black stone plays
         {
-            currentGame = currentGame.copy(turnTimer = Timer.start(),currentTurn = nextTurn, currentStone = Stone.Black)
+            currentGame = currentGame.copy(turnTimer = Timer.start(), currentStone = Stone.Black)
+            // change label, who is playing
         }
         else
         {
-            currentGame = currentGame.copy(turnTimer = Timer.start(),currentTurn = nextTurn, currentStone = Stone.White)
+            currentGame = currentGame.copy(turnTimer = Timer.start(), currentStone = Stone.White)
+            // change label, who is playing
         }
         
         if( currentGame.currentStone != currentGame.playerStone ){
-            // add a delay ?
-            botPlay()
+            // Bot is choosing a spot to place a stone
+            delayCpuMove(1250){ // delayed CPU play for better UX
+                botPlay()
+            }
         }
-        
         // is player turn, wait for input
     }
     
@@ -101,7 +118,7 @@ class Game(gameState: GameState) extends Initializable{
         if (!validPlay)
             return
             
-        println(s"Processed valid Play $row $col, state ${currentGame.state}, turn ${currentGame.currentTurn}")
+//        println(s"Processed valid Play $row $col, state ${currentGame.state}, turn ${currentGame.currentTurn}")
     }
 
     private def playerPlay(col: Int, row: Int): Boolean = {
@@ -180,7 +197,7 @@ class Game(gameState: GameState) extends Initializable{
         if (capturesAmount > 0) {
             val lstCoordsToRemoveStonesFrom = AtariGo.getBoardEmptyCoords(newBoardAfterPlay).filter(c => !lstOpenCoords.contains(c))
             for (coord <- lstCoordsToRemoveStonesFrom) {
-                println(s"Removing stone at row ${coord._1},col ${coord._2}")
+            //  println(s"Removing stone at row ${coord._1},col ${coord._2}")
                 removeCircleAt(boardGrid, coord._2, coord._1)
             }
         }
@@ -219,21 +236,22 @@ class Game(gameState: GameState) extends Initializable{
         if (currentGame.currentStone == currentGame.playerStone){
             val newGameState = currentGame.copy(
                 board = boardRes,
+                currentTurn = currentGame.currentTurn + 1,
                 currentStone = getOppositeStone(currentGame.playerStone),
                 playerCap = currentGame.playerCap + capturesAmount,
-                oldState = currentGame
+                oldState = currentGame  // confirm that this
             )
             currentGame = newGameState
-            updateCapturesLabel(currentGame.playerStone)
         } else {
             val newGameState = currentGame.copy(
                 board = boardRes,
+                currentTurn = currentGame.currentTurn + 1,
                 currentStone = currentGame.playerStone,
                 opponentCap = currentGame.opponentCap + capturesAmount,
             )
             currentGame = newGameState
-            updateCapturesLabel(getOppositeStone(currentGame.playerStone))
         }
+        updateCapturesLabel(getOppositeStone(currentGame.currentStone)) // Update the previous player score label
         AtariGo.drawBoard(currentGame.board)
     }
 
@@ -295,5 +313,12 @@ class Game(gameState: GameState) extends Initializable{
         GridPane.setHalignment(circle, HPos.CENTER)
         GridPane.setValignment(circle, VPos.CENTER)
         boardGrid.getChildren.add(circle)
+    }
+    
+    //
+    def delayCpuMove(delayMillis: Long)(cpuAction: => Unit): Unit ={
+        val pause = new PauseTransition(Duration.millis(delayMillis))
+        pause.setOnFinished(_ => cpuAction)
+        pause.play()
     }
 }
