@@ -256,8 +256,8 @@ object AtariGo{
   def isPlayerTurnTimeUp(playerTurnTimestamp: Int, playerTurnMaxTime: Int): Boolean = {
     if (playerTurnTimestamp > playerTurnMaxTime) true else false
   }
-
-  val funcRandMovePlay = randomMove(_: List[Coord2D], _: MyRandom)
+  
+  val funcRandMovePlay: (List[Coord2D], MyRandom) => (Coord2D, MyRandom) = randomMove(_: List[Coord2D], _: MyRandom)
 
   @tailrec
   def mainLoop(gameState: GameState, random: MyRandom): Unit = gameState.state match {
@@ -328,7 +328,7 @@ object AtariGo{
               val (boardAfterPlay, capturesAmount) = captureGroupStones(boardAfter, getOppositeStone(gameState.playerStone))
               val newState = gameState.copy(opponentCap = gameState.opponentCap + capturesAmount, currentStone = gameState.playerStone, currentTurn = gameState.currentTurn + 1, board = boardAfterPlay, turnTimer = Timer.start())
               mainLoop(newState, r)
-            case Nil =>
+            case _ =>
               mainLoop(gameState, r)
           }
         }
