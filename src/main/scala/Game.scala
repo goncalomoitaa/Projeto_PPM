@@ -135,9 +135,12 @@ class Game(gameState: GameState) extends Initializable{
                 
                 val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(boardAfter, currentGame.currentStone)
                 if (won) {
-                    println("You won!")
+                    //println("You won!")
+                    changeStatusMessage("Ganhou o jogo!")
                     currentGame = currentGame.copy(state = State.NONE)
-                    Platform.exit()
+                    delayBeforeExecution(2000){
+                        Platform.exit()
+                    }
                     return true
                 }
                 updateGameState(newBoardAfterPlay, capturesAmount)
@@ -172,9 +175,12 @@ class Game(gameState: GameState) extends Initializable{
             
             val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(newBoard, currentGame.currentStone)
             if (won) {
-                println("You Lost!")
+                //println("You Lost!")
+                changeStatusMessage("Perdeu o jogo!")
                 currentGame = currentGame.copy(state = State.NONE)
-                Platform.exit()
+                delayBeforeExecution(2000){
+                    Platform.exit()
+                }
                 return
             }
             updateGameState(newBoardAfterPlay, capturesAmount)
