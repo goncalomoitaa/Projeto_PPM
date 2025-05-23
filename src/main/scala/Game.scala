@@ -31,6 +31,7 @@ class Game(gameState: GameState) extends Initializable{
     @FXML private var botScoreLabel: Label = _
     @FXML private var capLimitLabel: Label = _
     @FXML private var timerLabel: Label = _
+    @FXML private var statusLabel: Label = _
     
     private var random: MyRandom = _
     private val funcRand = randomMove(_: List[Coord2D], _: MyRandom)
@@ -46,6 +47,7 @@ class Game(gameState: GameState) extends Initializable{
     }
     
     def initiateBoard() : Unit ={
+        changeStatusMessage("Jogo iniciou!")
         
         currentGame = currentGame.copy(
             state = State.IN_GAME,
@@ -53,30 +55,29 @@ class Game(gameState: GameState) extends Initializable{
             board = AtariGo.initializeBoard(currentGame.gameSize)
         )
         
-        playerScoreLabel.setText(s"PLAYER -> Score: ${currentGame.playerCap}")
-        botScoreLabel.setText(s"BOT -> Score: ${currentGame.opponentCap}")
-        capLimitLabel.setText(s"CAP LIMIT: ${currentGame.maxCap}")
+        updateCapturesLabel(Stone.Black)
+        updateCapturesLabel(Stone.White)
+        capLimitLabel.setText(s"Limite: ${currentGame.maxCap}")
         
         initNextTurn()
     }
     
     def initNextTurn() : Unit = {
-        //val nextTurn = currentGame.currentTurn + 1
-        println(s"current turn: ${currentGame.currentTurn}")
+        //println(s"current turn: ${currentGame.currentTurn}")
         if (currentGame.currentTurn % 2 == 1)   // Odd number, black stone plays
         {
             currentGame = currentGame.copy(turnTimer = Timer.start(), currentStone = Stone.Black)
-            // change label, who is playing
+            changeStatusMessage("Turno das pedras pretas")
         }
         else
         {
             currentGame = currentGame.copy(turnTimer = Timer.start(), currentStone = Stone.White)
-            // change label, who is playing
+            changeStatusMessage("Turno das pedras brancas")
         }
         
         if( currentGame.currentStone != currentGame.playerStone ){
             // Bot is choosing a spot to place a stone
-            delayCpuMove(1250){ // delayed CPU play for better UX
+            delayBeforeExecution(1250){ // delayed CPU play for better UX
                 botPlay()
             }
         }
@@ -252,23 +253,12 @@ class Game(gameState: GameState) extends Initializable{
             currentGame = newGameState
         }
         updateCapturesLabel(getOppositeStone(currentGame.currentStone)) // Update the previous player score label
-        AtariGo.drawBoard(currentGame.board)
+        //AtariGo.drawBoard(currentGame.board)
     }
 
     private def updateCapturesLabel(currentPlayer: Stone): Unit = {
-        if (currentGame.playerStone == currentPlayer) {
-            //println(s"updatingCaptures: PLAYER -> Score: ${currentGame.playerCap}")
-            playerScoreLabel.setText(s"PLAYER -> Score: ${currentGame.playerCap}")
-            //val addCaptures = capturesAmount + currentGame.playerCap
-            //println(s"addCaptures = capturesAmount + currentGame.playerCap => $addCaptures=$capturesAmount+${currentGame.playerCap}")
-            //currentGame = currentGame.copy(playerCap = addCaptures)
-        } else {
-            //println(s"updatingCaptures: BOT -> Score: ${currentGame.opponentCap}")
-            botScoreLabel.setText(s"BOT -> Score: ${currentGame.opponentCap}")
-            //val addCaptures = currentGame.opponentCap + capturesAmount
-            //println(s"addCaptures = capturesAmount + currentGame.opponentCap => $addCaptures=$capturesAmount+${currentGame.opponentCap}")
-            //currentGame = currentGame.copy(opponentCap = addCaptures)
-        }
+        if (currentGame.playerStone == currentPlayer) playerScoreLabel.setText(s"Jogador: ${currentGame.playerCap}")
+        else botScoreLabel.setText(s"CPU: ${currentGame.opponentCap}")
     }
 
     private def getCurrentPlayer(color: Color): Stone = color match {
@@ -316,9 +306,15 @@ class Game(gameState: GameState) extends Initializable{
     }
     
     //
-    def delayCpuMove(delayMillis: Long)(cpuAction: => Unit): Unit ={
+    def delayBeforeExecution(delayMillis: Long)(cpuAction: => Unit): Unit ={
         val pause = new PauseTransition(Duration.millis(delayMillis))
         pause.setOnFinished(_ => cpuAction)
         pause.play()
+    }
+    
+    def changeStatusMessage(msg:String) : Boolean = {
+        
+        statusLabel.setText(msg)
+        true
     }
 }
