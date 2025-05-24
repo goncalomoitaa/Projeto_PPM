@@ -88,6 +88,9 @@ class Game(gameState: GameState) extends Initializable{
 
     @FXML
     def undoButtonClick(): Unit = {
+        if(currentGame.state != State.IN_GAME)
+            return
+            
         if (currentGame.oldState != null)
             currentGame = AtariGo.undo(currentGame)
             refreshBoardFromState()
@@ -170,9 +173,9 @@ class Game(gameState: GameState) extends Initializable{
                 if (won) {
                     changeStatusMessage("Ganhou o jogo!")
                     currentGame = currentGame.copy(state = State.NONE)
-                    delayBeforeExecution(2000){
-                        Platform.exit()
-                    }
+//                    delayBeforeExecution(2000){
+//                        Platform.exit()
+//                    }
                     return true
                 }
                 initNextTurn()
@@ -208,9 +211,9 @@ class Game(gameState: GameState) extends Initializable{
             if (won) {
                 changeStatusMessage("Perdeu o jogo!")
                 currentGame = currentGame.copy(state = State.NONE)
-                delayBeforeExecution(2000){
-                    Platform.exit()
-                }
+//                delayBeforeExecution(2000){
+//                    Platform.exit()
+//                }
                 return
             }
             initNextTurn()
