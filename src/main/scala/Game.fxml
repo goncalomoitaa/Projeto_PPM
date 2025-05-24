@@ -49,7 +49,7 @@
             </StackPane.margin>
         </GridPane>
     </StackPane>
-    <Button fx:id="undoButton" layoutX="515.0" layoutY="40.0" mnemonicParsing="false" prefHeight="35.0" prefWidth="99.0" text="Undo" />
+    <Button fx:id="undoButton" layoutX="515.0" layoutY="40.0" mnemonicParsing="false" onMouseClicked="#undoButtonClick" prefHeight="35.0" prefWidth="99.0" text="Undo" />
     <Label fx:id="playerScoreLabel" layoutX="757.0" layoutY="212.0" text="_player_score_" AnchorPane.bottomAnchor="473.0">
         <font>
             <Font size="24.0" />
