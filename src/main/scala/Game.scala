@@ -32,7 +32,7 @@ class Game(gameState: GameState) extends Initializable{
     @FXML private var capLimitLabel: Label = _
     @FXML private var timerLabel: Label = _
     @FXML private var statusLabel: Label = _
-@
+    
     private var random: MyRandom = _
     private val funcRand = randomMove(_: List[Coord2D], _: MyRandom)
     private var currentGame: GameState = gameState
