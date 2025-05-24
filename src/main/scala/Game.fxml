@@ -65,7 +65,7 @@
             <Font size="24.0" />
         </font>
     </Label>
-    <Label fx:id="timerLabel" layoutX="776.0" layoutY="47.0" text="_Timer_">
+    <Label fx:id="timerLabel" disable="true" layoutX="776.0" layoutY="47.0" text="_Timer_">
         <font>
             <Font size="24.0" />
         </font>
@@ -82,4 +82,5 @@
          <Font name="System Bold" size="28.0" />
       </font>
    </Label>
+   <Button fx:id="restartButton" layoutX="896.0" layoutY="570.0" mnemonicParsing="false" onAction="#onRestartButtonClick" text="Reiniciar" />
 </AnchorPane>

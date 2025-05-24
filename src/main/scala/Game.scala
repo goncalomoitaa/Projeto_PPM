@@ -52,9 +52,11 @@ class Game(gameState: GameState) extends Initializable{
         currentGame = currentGame.copy(
             state = State.IN_GAME,
             currentTurn = 1,
+            playerCap = 0,
+            opponentCap = 0,
             board = AtariGo.initializeBoard(currentGame.gameSize)
         )
-
+        refreshBoardFromState()
         updateCapturesLabel(Stone.Black)
         updateCapturesLabel(Stone.White)
         capLimitLabel.setText(s"Limite: ${currentGame.maxCap}")
@@ -95,6 +97,11 @@ class Game(gameState: GameState) extends Initializable{
             print("não tem jogada anterior")
     }
 
+    @FXML
+    def onRestartButtonClick(): Unit = {
+        initiateBoard()
+    }
+    
     def refreshBoardFromState(): Unit = {
         boardGrid.getChildren.clear()
 

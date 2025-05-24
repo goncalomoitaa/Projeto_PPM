@@ -1,11 +1,7 @@
 import AtariGo.Stone
 import javafx.fxml.{FXML, Initializable}
-import javafx.scene.control.{Button, Label, RadioButton, TextField, ToggleGroup}
-import javafx.scene.shape.{Circle, StrokeType}
-import javafx.scene.input.{MouseEvent, TouchEvent}
-import javafx.scene.layout.GridPane
+import javafx.scene.control.{Button, RadioButton, TextField, ToggleGroup}
 import javafx.scene.paint.Color
-import javafx.scene.input.MouseEvent
 import javafx.scene.layout.GridPane
 import javafx.fxml.FXMLLoader
 import javafx.application.Platform
@@ -13,7 +9,7 @@ import javafx.application.Platform
 import java.net.URL
 import java.util.ResourceBundle
 import AtariGo.Stone.Stone
-import TUI_Utils.{State, printGameState}
+import TUI_Utils.State
 import javafx.scene.{Parent, Scene}
 import javafx.stage.Stage
 
