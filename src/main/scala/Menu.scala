@@ -37,6 +37,8 @@ class Menu extends Initializable {
     @FXML private var blackRadio:RadioButton = _
     @FXML private var startButton:Button = _
     
+    private var gameStage: Option[ Stage ] = None
+    
     @FXML
     override def initialize(url: URL, resourceBundle: ResourceBundle): Unit = {
 
@@ -77,20 +79,25 @@ class Menu extends Initializable {
     
     @FXML
     def onStartGame(): Unit = {
-        println("Button On Action triggered: game started!")
-
-        val maxCaptures = maxCapturesField.getCharacters.toString.toInt
-        val turnTime = turnTimeField.getCharacters.toString.toInt
-        val gameState = GameState(State.NEW_GAME, maxTurnTimeSec = turnTime, maxCap = maxCaptures, playerStone = getSelectedStoneColor)
-        val fxmlLoader = new FXMLLoader(getClass.getResource("Game.fxml"))
-        val gameController = new Game(gameState)
-        fxmlLoader.setController(gameController)
-        val mainViewRoot: Parent = fxmlLoader.load()
-        val stage = new Stage()
-        val scene = new Scene(mainViewRoot)
-        stage.setTitle("Atari Go Game")
-        stage.setScene(scene)
-        stage.show()
+        gameStage match {
+            case Some( stage ) if stage.isShowing =>
+                stage.toFront()
+            case _ =>
+                val maxCaptures = maxCapturesField.getCharacters.toString.toInt
+                val turnTime = turnTimeField.getCharacters.toString.toInt
+                val gameState = GameState( State.NEW_GAME, maxTurnTimeSec = turnTime, maxCap = maxCaptures, playerStone = getSelectedStoneColor )
+                val fxmlLoader = new FXMLLoader( getClass.getResource( "Game.fxml" ) )
+                val gameController = new Game( gameState )
+                fxmlLoader.setController( gameController )
+                val mainViewRoot: Parent = fxmlLoader.load()
+                val stage = new Stage()
+                val scene = new Scene( mainViewRoot )
+                gameStage = Some(stage)
+                stage.setOnCloseRequest(_ => gameStage = None)
+                stage.setTitle( "Atari Go" )
+                stage.setScene( scene )
+                stage.show()
+        }
     }
     
     private def getSelectedStoneColor: Stone = {
