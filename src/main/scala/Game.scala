@@ -32,7 +32,7 @@ class Game(gameState: GameState) extends Initializable{
     @FXML private var capLimitLabel: Label = _
     @FXML private var timerLabel: Label = _
     @FXML private var statusLabel: Label = _
-    
+@
     private var random: MyRandom = _
     private val funcRand = randomMove(_: List[Coord2D], _: MyRandom)
     private var currentGame: GameState = gameState
@@ -42,26 +42,26 @@ class Game(gameState: GameState) extends Initializable{
         random = MyRandom(System.currentTimeMillis())
         playerColor = if (currentGame.playerStone == Stone.Black) Color.BLACK else Color.WHITE
         botColor = if (currentGame.playerStone == Stone.White) Color.BLACK else Color.WHITE
-        
+
         initiateBoard()
     }
-    
+
     def initiateBoard() : Unit ={
         changeStatusMessage("Jogo iniciou!")
-        
+
         currentGame = currentGame.copy(
             state = State.IN_GAME,
             currentTurn = 1,
             board = AtariGo.initializeBoard(currentGame.gameSize)
         )
-        
+
         updateCapturesLabel(Stone.Black)
         updateCapturesLabel(Stone.White)
         capLimitLabel.setText(s"Limite: ${currentGame.maxCap}")
-        
+
         initNextTurn()
     }
-    
+
     def initNextTurn() : Unit = {
         //println(s"current turn: ${currentGame.currentTurn}")
         if (currentGame.currentTurn % 2 == 1)   // Odd number, black stone plays
@@ -74,7 +74,7 @@ class Game(gameState: GameState) extends Initializable{
             currentGame = currentGame.copy(turnTimer = Timer.start(), currentStone = Stone.White)
             changeStatusMessage("Turno das pedras brancas")
         }
-        
+
         if( currentGame.currentStone != currentGame.playerStone ){
             // Bot is choosing a spot to place a stone
             delayBeforeExecution(1250){ // delayed CPU play for better UX
@@ -83,13 +83,38 @@ class Game(gameState: GameState) extends Initializable{
         }
         // is player turn, wait for input
     }
-    
+
+    @FXML
+    def undoButtonClick(): Unit = {
+        if (currentGame.oldState != null)
+            currentGame = AtariGo.undo(currentGame)
+            refreshBoardFromState()
+            updateCapturesLabel(Stone.White)
+            updateCapturesLabel(Stone.Black)
+        else
+            print("não tem jogada anterior")
+    }
+
+    def refreshBoardFromState(): Unit = {
+        boardGrid.getChildren.clear()
+
+        for {
+            row <- currentGame.board.indices
+            col <- currentGame.board(row).indices
+            stone = currentGame.board(row)(col)
+            if stone != Stone.Empty
+        } {
+            val color = if (stone == Stone.Black) Color.BLACK else Color.WHITE
+            drawPosition(color, col, row)
+        }
+    }
+
     @FXML
     def onGameBoardClick(event: MouseEvent): Unit = {
         if(currentGame.state != State.IN_GAME) return
-        
+
         if(currentGame.currentStone != currentGame.playerStone) return
-        
+
         val mouseX = event.getX
         val mouseY = event.getY
 
@@ -104,7 +129,7 @@ class Game(gameState: GameState) extends Initializable{
 
         // Safety check for bounds
         if (col < 0 || col >= cols || row < 0 || row >= rows) return
-            
+
         // Check if a circle is already in this cell
         val alreadyOccupied = boardGrid.getChildren.stream().anyMatch { node =>
             GridPane.getColumnIndex(node) == col &&
@@ -114,12 +139,12 @@ class Game(gameState: GameState) extends Initializable{
         if (alreadyOccupied) {
             return
         }
-        
+
         val validPlay = playerPlay(col, row)
         if (!validPlay)
             return
-            
-//        println(s"Processed valid Play $row $col, state ${currentGame.state}, turn ${currentGame.currentTurn}")
+
+        //        println(s"Processed valid Play $row $col, state ${currentGame.state}, turn ${currentGame.currentTurn}")
     }
 
     private def playerPlay(col: Int, row: Int): Boolean = {
@@ -132,7 +157,7 @@ class Game(gameState: GameState) extends Initializable{
                 //updateGameBoard(boardAfter)
                 //val circle = createCircle(playerColor)
                 drawPosition(playerColor, col, row)
-                
+
                 val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(boardAfter, currentGame.currentStone)
                 if (won) {
                     //println("You won!")
@@ -157,12 +182,12 @@ class Game(gameState: GameState) extends Initializable{
         val (newBoard, newRandom, newLstOpenCoords) = playRandomly(oldBoard, random, AtariGo.getOppositeStone(currentGame.playerStone), lstOpenCoords, funcRand)
         // playRandomly already returns a resolved "Some" object
         // it returns either a new board or the old one. Must check which one
-        
+
         if(oldBoard != newBoard)   // It is a new one
         {
             //updateGameBoard(newBoard)
             random = newRandom
-            
+
             val playedPosList = lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord))
             if (playedPosList.isEmpty)
                 println("WOULD CRASH HERE")
@@ -170,9 +195,9 @@ class Game(gameState: GameState) extends Initializable{
                 val playedPos = playedPosList.head //lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
                 drawPosition(botColor, playedPos._2, playedPos._1)
             }
-            
+
             //val circle = createCircle(botColor)
-            
+
             val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(newBoard, currentGame.currentStone)
             if (won) {
                 //println("You Lost!")
@@ -204,7 +229,7 @@ class Game(gameState: GameState) extends Initializable{
         if (capturesAmount > 0) {
             val lstCoordsToRemoveStonesFrom = AtariGo.getBoardEmptyCoords(newBoardAfterPlay).filter(c => !lstOpenCoords.contains(c))
             for (coord <- lstCoordsToRemoveStonesFrom) {
-            //  println(s"Removing stone at row ${coord._1},col ${coord._2}")
+                //  println(s"Removing stone at row ${coord._1},col ${coord._2}")
                 removeCircleAt(boardGrid, coord._2, coord._1)
             }
         }
@@ -310,16 +335,16 @@ class Game(gameState: GameState) extends Initializable{
         GridPane.setValignment(circle, VPos.CENTER)
         boardGrid.getChildren.add(circle)
     }
-    
+
     //
     def delayBeforeExecution(delayMillis: Long)(cpuAction: => Unit): Unit ={
         val pause = new PauseTransition(Duration.millis(delayMillis))
         pause.setOnFinished(_ => cpuAction)
         pause.play()
     }
-    
+
     def changeStatusMessage(msg:String) : Boolean = {
-        
+
         statusLabel.setText(msg)
         true
     }
