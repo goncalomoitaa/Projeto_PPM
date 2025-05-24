@@ -159,8 +159,8 @@ class Game(gameState: GameState) extends Initializable{
                 drawPosition(playerColor, col, row)
 
                 val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(boardAfter, currentGame.currentStone)
+                updateGameState(newBoardAfterPlay, capturesAmount)
                 if (won) {
-                    //println("You won!")
                     changeStatusMessage("Ganhou o jogo!")
                     currentGame = currentGame.copy(state = State.NONE)
                     delayBeforeExecution(2000){
@@ -168,7 +168,6 @@ class Game(gameState: GameState) extends Initializable{
                     }
                     return true
                 }
-                updateGameState(newBoardAfterPlay, capturesAmount)
                 initNextTurn()
                 true
             case None => false
@@ -195,12 +194,11 @@ class Game(gameState: GameState) extends Initializable{
                 val playedPos = playedPosList.head //lstOpenCoords.filter(coord => !newLstOpenCoords.contains(coord)).head
                 drawPosition(botColor, playedPos._2, playedPos._1)
             }
-
-            //val circle = createCircle(botColor)
-
+            
             val (newBoardAfterPlay, capturesAmount, won) = removeCaptures(newBoard, currentGame.currentStone)
+            updateGameState(newBoardAfterPlay, capturesAmount)
+            
             if (won) {
-                //println("You Lost!")
                 changeStatusMessage("Perdeu o jogo!")
                 currentGame = currentGame.copy(state = State.NONE)
                 delayBeforeExecution(2000){
@@ -208,7 +206,6 @@ class Game(gameState: GameState) extends Initializable{
                 }
                 return
             }
-            updateGameState(newBoardAfterPlay, capturesAmount)
             initNextTurn()
         }
         else {
